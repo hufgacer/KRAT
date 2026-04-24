@@ -31,9 +31,8 @@ header h1{font-family:'Cinzel Decorative',serif;font-size:clamp(1rem,2.5vw,1.65r
 .ver-badge{font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.1em;color:var(--text-dim);background:var(--surface2);border:1px solid var(--border);padding:2px 7px;border-radius:3px;}
 
 /* ── APP SHELL ── */
-.app{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
-.body-area{display:flex;flex-direction:column;flex:1;overflow:hidden;position:relative;z-index:1;}
-.top-area{display:flex;flex:1;min-height:0;overflow:hidden;}
+.app{display:flex;flex-direction:column;height:100vh;}
+.body-area{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
 
 /* ── SIDEBAR ── */
 aside{width:300px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:13px 12px;display:flex;flex-direction:column;gap:13px;}
@@ -380,51 +379,27 @@ aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
 .al-chip .edit-btn:hover{color:var(--gold-light);}
 .al-chip .del{margin-left:2px;}
 /* ══════════════════════════════════════
-   APPLICATIONS PANEL — BOTTOM DRAWER (PC)
+   APPLICATIONS PANEL (right sidebar)
 ══════════════════════════════════════ */
-
-/* Collapse toggle handle */
 .apps-panel{
-  flex-shrink:0;
-  border-top:2px solid var(--border-gold);
+  width:320px;flex-shrink:0;
+  border-left:1px solid var(--border);
   background:var(--surface);
   display:flex;flex-direction:column;
   overflow:hidden;
-  position:relative;z-index:2;
-  /* Default height — collapsed shows just the handle bar */
-  height:44px;
-  transition:height .3s cubic-bezier(.4,0,.2,1);
+  position:relative;z-index:1;
 }
-.apps-panel.expanded{
-  height:42vh;
-  min-height:220px;
-}
-
-/* Drag handle / header bar */
 .apps-panel-header{
-  height:44px;flex-shrink:0;
-  padding:0 14px;
-  display:flex;align-items:center;gap:10px;
-  cursor:pointer;
-  background:linear-gradient(90deg,#1a140a,var(--surface) 40%);
-  border-bottom:1px solid transparent;
-  transition:border-color .2s;
-  user-select:none;
+  padding:10px 13px 8px;
+  border-bottom:1px solid var(--border-gold);
+  flex-shrink:0;
+  background:linear-gradient(180deg,#1a140a,var(--surface));
 }
-.apps-panel.expanded .apps-panel-header{
-  border-bottom-color:var(--border-gold);
-}
-.apps-chevron{
-  font-size:.7rem;color:var(--gold);
-  transition:transform .3s;flex-shrink:0;
-}
-.apps-panel.expanded .apps-chevron{ transform:rotate(180deg); }
-
 .apps-panel-title{
   font-family:'Cinzel Decorative',serif;
-  font-size:.62rem;letter-spacing:.12em;
+  font-size:.66rem;letter-spacing:.12em;
   color:var(--gold-bright);text-transform:uppercase;
-  display:flex;align-items:center;gap:8px;flex:1;
+  display:flex;align-items:center;gap:7px;
 }
 .apps-badge{
   background:var(--crimson);color:#fff;
@@ -434,104 +409,86 @@ aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
   display:none;
 }
 .apps-badge.vis{display:inline-block;}
-
-/* Status dot + filters all in header bar */
-.apps-header-right{
-  display:flex;align-items:center;gap:8px;margin-left:auto;
-}
 .apps-filter-row{
-  display:flex;gap:4px;
+  display:flex;gap:4px;margin-top:7px;flex-wrap:wrap;
 }
 .filter-btn{
-  font-family:'Cinzel',serif;font-size:.5rem;letter-spacing:.08em;
-  text-transform:uppercase;padding:3px 9px;border-radius:3px;
+  font-family:'Cinzel',serif;font-size:.52rem;letter-spacing:.08em;
+  text-transform:uppercase;padding:3px 8px;border-radius:3px;
   cursor:pointer;border:1px solid var(--border);
   background:var(--surface2);color:var(--text-muted);
   transition:all .18s;
 }
 .filter-btn.active{border-color:var(--gold);color:var(--gold-light);background:rgba(201,150,42,.1);}
+.apps-status-bar{
+  padding:5px 13px;font-family:'Cinzel',serif;
+  font-size:.52rem;letter-spacing:.1em;color:var(--text-dim);
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;gap:5px;
+}
 .poll-dot{
-  width:7px;height:7px;border-radius:50%;
+  width:6px;height:6px;border-radius:50%;
   background:var(--text-dim);flex-shrink:0;
   transition:background .3s;
 }
 .poll-dot.live{background:#3db850;box-shadow:0 0 5px #3db850;}
 .poll-dot.err{background:var(--crimson);}
-
-/* Body below header */
-.apps-panel-body{
-  flex:1;display:flex;overflow:hidden;min-height:0;
-}
-
-/* Cards scroll area */
-.apps-list{
-  flex:1;overflow-x:auto;overflow-y:hidden;
-  display:flex;gap:10px;padding:10px 12px;
-  align-items:flex-start;
-}
-.apps-list::-webkit-scrollbar{height:4px;}
-.apps-list::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
-
-/* Cards — horizontal layout, fixed width */
+.apps-list{flex:1;overflow-y:auto;padding:8px 8px;}
+.apps-list::-webkit-scrollbar{width:3px;}
+.apps-list::-webkit-scrollbar-thumb{background:var(--border-gold);}
 .app-card{
   background:var(--surface2);border:1px solid var(--border);
-  border-radius:6px;overflow:hidden;
+  border-radius:5px;margin-bottom:7px;overflow:hidden;
   transition:border-color .2s;
-  flex-shrink:0;width:230px;
-  display:flex;flex-direction:column;
-  height:100%;
 }
 .app-card:hover{border-color:var(--border-gold);}
-.app-card.status-accepted{border-top:3px solid #3db850;}
-.app-card.status-rejected{border-top:3px solid var(--crimson);}
-.app-card.status-pending{border-top:3px solid var(--gold);}
-
+.app-card.status-accepted{border-left:3px solid #3db850;}
+.app-card.status-rejected{border-left:3px solid var(--crimson);}
+.app-card.status-pending{border-left:3px solid var(--gold);}
 .app-card-head{
-  padding:8px 10px 5px;
+  padding:7px 9px 5px;
   display:flex;align-items:flex-start;justify-content:space-between;gap:6px;
 }
 .app-pos{
-  font-family:'Cinzel',serif;font-size:.58rem;
-  letter-spacing:.05em;color:var(--gold-light);
+  font-family:'Cinzel',serif;font-size:.6rem;
+  letter-spacing:.06em;color:var(--gold-light);
   text-transform:uppercase;line-height:1.3;flex:1;
 }
 .app-status-pill{
-  font-family:'Cinzel',serif;font-size:.48rem;letter-spacing:.08em;
-  text-transform:uppercase;padding:2px 6px;border-radius:10px;
+  font-family:'Cinzel',serif;font-size:.5rem;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 7px;border-radius:10px;
   flex-shrink:0;
 }
 .pill-pending{background:rgba(201,150,42,.15);color:var(--gold);border:1px solid rgba(201,150,42,.3);}
 .pill-accepted{background:rgba(61,184,80,.15);color:#3db850;border:1px solid rgba(61,184,80,.3);}
 .pill-rejected{background:rgba(196,43,43,.15);color:#e05555;border:1px solid rgba(196,43,43,.3);}
-
 .app-card-body{
-  padding:0 10px 6px;
-  display:flex;flex-direction:column;gap:3px;
-  flex:1;
+  padding:0 9px 7px;
+  display:flex;flex-direction:column;gap:2px;
 }
-.app-row{display:flex;gap:5px;align-items:baseline;}
+.app-row{
+  display:flex;gap:5px;align-items:baseline;
+}
 .app-lbl{
-  font-family:'Cinzel',serif;font-size:.46rem;
+  font-family:'Cinzel',serif;font-size:.48rem;
   letter-spacing:.1em;color:var(--text-dim);
-  text-transform:uppercase;flex-shrink:0;min-width:50px;
+  text-transform:uppercase;flex-shrink:0;min-width:54px;
 }
 .app-val{
-  font-family:'EB Garamond',serif;font-size:.8rem;
-  color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:'EB Garamond',serif;font-size:.82rem;
+  color:var(--text);
 }
 .app-val.gold{color:var(--gold-light);}
-
 .app-actions{
-  display:flex;gap:4px;padding:6px 8px 8px;
+  display:flex;gap:5px;padding:6px 9px 8px;
   border-top:1px solid var(--border);
-  flex-shrink:0;
 }
 .btn-accept{
   flex:1;padding:5px 0;
   background:linear-gradient(135deg,#1a4a20,#2d8a3e);
   border:1px solid #3db850;color:#c0f0c8;
-  font-family:'Cinzel',serif;font-size:.52rem;
-  letter-spacing:.06em;border-radius:3px;
+  font-family:'Cinzel',serif;font-size:.56rem;
+  letter-spacing:.08em;border-radius:3px;
   cursor:pointer;transition:all .18s;
 }
 .btn-accept:hover{background:linear-gradient(135deg,#22642a,#3aaa4e);box-shadow:0 0 8px rgba(61,184,80,.3);}
@@ -539,8 +496,8 @@ aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
   flex:1;padding:5px 0;
   background:linear-gradient(135deg,#4a1a1a,#8a2a2a);
   border:1px solid var(--crimson);color:#ffd0d0;
-  font-family:'Cinzel',serif;font-size:.52rem;
-  letter-spacing:.06em;border-radius:3px;
+  font-family:'Cinzel',serif;font-size:.56rem;
+  letter-spacing:.08em;border-radius:3px;
   cursor:pointer;transition:all .18s;
 }
 .btn-reject:hover{background:linear-gradient(135deg,#641a1a,#aa3535);box-shadow:0 0 8px rgba(196,43,43,.3);}
@@ -548,75 +505,54 @@ aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
   flex:1;padding:5px 0;
   background:linear-gradient(135deg,#1a2a4a,#2a4a8a);
   border:1px solid #4a7acc;color:#c0d8ff;
-  font-family:'Cinzel',serif;font-size:.52rem;
-  letter-spacing:.06em;border-radius:3px;
+  font-family:'Cinzel',serif;font-size:.56rem;
+  letter-spacing:.08em;border-radius:3px;
   cursor:pointer;transition:all .18s;
 }
 .btn-place:hover{background:linear-gradient(135deg,#223366,#3a5aaa);box-shadow:0 0 8px rgba(74,122,204,.3);}
-
-/* Empty state */
 .apps-empty{
-  display:flex;align-items:center;gap:8px;
+  text-align:center;padding:30px 16px;
   font-family:'EB Garamond',serif;font-style:italic;
-  font-size:.88rem;color:var(--text-dim);
-  padding:0 4px;white-space:nowrap;
+  font-size:.9rem;color:var(--text-dim);
 }
-
-/* Setup panel — inside apps-panel-body */
-.apps-setup-pane{
-  width:480px;flex-shrink:0;
-  padding:12px 16px;
-  overflow-y:auto;
-  display:none;
-  border-left:1px solid var(--border);
+.apps-setup-box{
+  margin:10px 8px;padding:10px 12px;
+  background:rgba(139,105,20,.1);border:1px solid rgba(139,105,20,.3);
+  border-radius:5px;
 }
-.apps-setup-pane.vis{display:block;}
 .apps-setup-box label{
   display:block;font-family:'Cinzel',serif;font-size:.52rem;
   letter-spacing:.12em;text-transform:uppercase;
-  color:var(--text-muted);margin-bottom:3px;margin-top:8px;
+  color:var(--text-muted);margin-bottom:3px;margin-top:7px;
 }
 .apps-setup-box label:first-child{margin-top:0;}
 .apps-setup-box input{
   width:100%;background:var(--surface2);border:1px solid var(--border);
   color:var(--text);padding:5px 8px;border-radius:4px;
-  font-family:'EB Garamond',serif;font-size:.84rem;outline:none;
+  font-family:'EB Garamond',serif;font-size:.82rem;outline:none;
   transition:border-color .2s;
 }
 .apps-setup-box input:focus{border-color:var(--gold);}
 .apps-setup-box input::placeholder{color:var(--text-dim);}
 .btn-setup-save{
-  width:100%;margin-top:10px;
+  width:100%;margin-top:9px;
   background:linear-gradient(135deg,#7a5010,#c9962a);
   border:1px solid var(--gold);color:#fdf0c0;
   font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.1em;
   padding:6px;border-radius:4px;cursor:pointer;transition:all .2s;
 }
 .btn-setup-save:hover{background:linear-gradient(135deg,#9a6518,#e8bb55);}
-
-/* Status bar — inside body */
-.apps-status-bar{
-  padding:6px 12px;font-family:'Cinzel',serif;
-  font-size:.5rem;letter-spacing:.1em;color:var(--text-dim);
-  border-right:1px solid var(--border);
-  display:flex;flex-direction:column;justify-content:center;
-  gap:4px;flex-shrink:0;width:160px;
-  border-left:none;
+.apps-panel-tabs{
+  display:flex;border-bottom:1px solid var(--border);flex-shrink:0;
 }
-
-/* Tabs inside header */
-.apps-panel-tabs{display:none;}/* tabs now replaced by setup icon in header */
-.apps-tab{display:none;}
-
-/* Setup toggle button in header */
-.btn-setup-toggle{
-  background:none;border:1px solid var(--border);
-  color:var(--text-dim);font-size:.75rem;padding:2px 7px;
-  border-radius:3px;cursor:pointer;transition:all .18s;flex-shrink:0;
+.apps-tab{
+  flex:1;padding:6px 0;text-align:center;
+  font-family:'Cinzel',serif;font-size:.52rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-dim);
+  cursor:pointer;transition:all .18s;border-bottom:2px solid transparent;
 }
-.btn-setup-toggle:hover,.btn-setup-toggle.active{border-color:var(--gold);color:var(--gold);}
-
-/* Confirm modal */
+.apps-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.apps-tab:hover:not(.active){color:var(--text-muted);}
 .confirm-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.78);
   z-index:6000;display:flex;align-items:center;justify-content:center;
@@ -675,80 +611,81 @@ aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
 .mnav-badge.vis{display:block;}
 
 /* ══════════════════════════════════════
-   RESPONSIVE BREAKPOINT — MOBILE
+   RESPONSIVE BREAKPOINT
 ══════════════════════════════════════ */
 @media (max-width: 768px) {
-  body{overflow:hidden;}
+  body{overflow:auto;}
 
   /* Header compact */
   header{padding:8px 12px 7px;}
   header h1{font-size:.9rem;}
   .subtitle{display:none;}
 
-  /* App shell */
+  /* App shell becomes full-screen panels */
   .app{height:calc(100vh - 56px);height:calc(100dvh - 56px);}
+  .body-area{
+    flex-direction:column;
+    overflow:hidden;
+    height:100%;
+  }
 
-  /* body-area stacks; top-area is a column of panels */
-  .body-area{height:100%;overflow:hidden;}
-  .top-area{height:100%;overflow:hidden;}
-
-  /* Left sidebar — hidden by default, shown via mobile nav */
+  /* Left sidebar becomes a panel */
   aside{
-    position:absolute;inset:0;z-index:50;
     width:100%;height:100%;
-    border-right:none;
-    display:none;overflow-y:auto;
+    border-right:none;border-bottom:none;
+    display:none;
+    overflow-y:auto;
     flex-shrink:0;
   }
   aside.mob-active{display:flex;}
 
-  /* Timeline — full area by default */
-  .tl-wrap{width:100%;flex:1;display:none;}
+  /* Timeline takes full width */
+  .tl-wrap{
+    width:100%;
+    display:none;
+    flex:1;
+  }
   .tl-wrap.mob-active{display:flex;}
 
-  /* Apps panel on mobile — full screen tab, not a drawer */
+  /* Apps panel takes full width */
   .apps-panel{
-    position:absolute;inset:0;z-index:50;
-    width:100%;height:100% !important;
-    border-top:none;
-    display:none;flex-direction:column;
-    transition:none;
+    width:100%;
+    border-left:none;
+    border-top:1px solid var(--border);
+    display:none;
+    flex:1;
   }
   .apps-panel.mob-active{display:flex;}
-  .apps-panel.expanded{height:100% !important;}
-
-  /* On mobile apps panel: vertical card scroll */
-  .apps-panel-body{flex-direction:column;}
-  .apps-list{
-    flex-direction:column;overflow-x:hidden;overflow-y:auto;
-    height:auto;padding:8px;
-  }
-  .apps-list::-webkit-scrollbar{width:3px;height:auto;}
-  .app-card{width:100%;height:auto;}
-
-  /* Status bar horizontal on mobile */
-  .apps-status-bar{
-    width:100%;flex-direction:row;align-items:center;
-    border-right:none;border-bottom:1px solid var(--border);
-    padding:5px 12px;gap:6px;
-  }
-
-  /* Setup pane full width */
-  .apps-setup-pane{width:100%;border-left:none;border-top:1px solid var(--border);}
-  .apps-setup-pane.vis{display:block;}
-
-  /* Filter row scrollable on mobile */
-  .apps-filter-row{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;}
 
   /* Show bottom nav */
   .mobile-nav{display:flex;}
+
+  /* Version footer hidden on mobile */
   .ver-foot{display:none;}
 
-  /* Tap targets */
-  .btn-accept,.btn-reject,.btn-place{padding:8px 0;font-size:.58rem;}
+  /* Make app cards easier to tap */
+  .btn-accept,.btn-reject,.btn-place{
+    padding:8px 0;font-size:.6rem;
+  }
+
+  /* Confirm box full width */
   .confirm-box{min-width:90vw;max-width:96vw;margin:0 8px;}
+
+  /* Appt modal full width */
   .appt-modal{min-width:90vw;max-width:96vw;}
   .edit-al-modal{min-width:90vw;max-width:96vw;}
+
+  /* Setup box full width */
+  .apps-setup-box{margin:8px;padding:12px;}
+
+  /* Filter buttons wrap nicely */
+  .apps-filter-row{gap:5px;}
+  .filter-btn{padding:4px 10px;font-size:.54rem;}
+
+  /* Apps list scrollable */
+  .apps-list{padding:8px;}
+
+  /* App card tap targets */
   .app-card-head{padding:9px 10px 6px;}
   .app-card-body{padding:0 10px 8px;}
 }
@@ -769,7 +706,6 @@ aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
 </header>
 
 <div class="body-area">
-<div class="top-area">
 
 <!-- SIDEBAR -->
 <aside>
@@ -879,63 +815,58 @@ aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
   </div>
 </div>
 
-</div><!-- top-area -->
+</div><!-- body-area -->
 
-<!-- APPLICATIONS PANEL — bottom drawer -->
+<!-- APPLICATIONS PANEL -->
 <div class="apps-panel" id="appsPanel">
 
-  <!-- Clickable header bar — toggles expand/collapse -->
-  <div class="apps-panel-header" onclick="toggleAppsPanel()">
-    <span class="apps-chevron">▲</span>
+  <div class="apps-panel-header">
     <div class="apps-panel-title">
       ⚖ Applications
       <span class="apps-badge" id="appsBadge">0</span>
     </div>
-    <div class="apps-header-right">
-      <span class="poll-dot" id="pollDot"></span>
-      <div class="apps-filter-row" onclick="event.stopPropagation()">
-        <button class="filter-btn active" onclick="setFilter('pending',this)">Pending</button>
-        <button class="filter-btn" onclick="setFilter('accepted',this)">Accepted</button>
-        <button class="filter-btn" onclick="setFilter('rejected',this)">Rejected</button>
-        <button class="filter-btn" onclick="setFilter('all',this)">All</button>
-      </div>
-      <button class="btn-setup-toggle" id="setupToggleBtn" onclick="event.stopPropagation();toggleSetupPane()" title="Configure">⚙</button>
+    <div class="apps-filter-row">
+      <button class="filter-btn active" onclick="setFilter('pending',this)">Pending</button>
+      <button class="filter-btn" onclick="setFilter('accepted',this)">Accepted</button>
+      <button class="filter-btn" onclick="setFilter('rejected',this)">Rejected</button>
+      <button class="filter-btn" onclick="setFilter('all',this)">All</button>
     </div>
   </div>
 
-  <!-- Expandable body -->
-  <div class="apps-panel-body">
+  <div class="apps-panel-tabs">
+    <div class="apps-tab active" onclick="showAppsTab('list',this)">📋 List</div>
+    <div class="apps-tab" onclick="showAppsTab('setup',this)">⚙ Setup</div>
+  </div>
 
-    <!-- Status bar (left column) -->
-    <div class="apps-status-bar">
-      <span id="pollStatus" style="line-height:1.4;">Not configured</span>
-    </div>
+  <div class="apps-status-bar">
+    <span class="poll-dot" id="pollDot"></span>
+    <span id="pollStatus">Not configured</span>
+  </div>
 
-    <!-- Cards list (horizontal scroll) -->
+  <!-- LIST TAB -->
+  <div id="appsListTab">
     <div class="apps-list" id="appsList">
-      <div class="apps-empty">Click ⚙ to configure, then applications will appear here.</div>
+      <div class="apps-empty">Click ⚙ Setup to configure polling interval &amp; webhook, then applications will appear here.</div>
     </div>
+  </div>
 
-    <!-- Setup pane (right column, toggleable) -->
-    <div class="apps-setup-pane" id="appsSetupPane">
-      <div class="apps-setup-box">
-        <label>GitHub applications.json Raw URL</label>
-        <input type="text" id="cfgGithubUrl" placeholder="https://raw.githubusercontent.com/…/applications.json">
-        <label>Discord Webhook URL</label>
-        <input type="text" id="cfgWebhook" placeholder="https://discord.com/api/webhooks/…">
-        <label>Poll Interval (seconds)</label>
-        <input type="number" id="cfgInterval" placeholder="15" min="10" max="300" value="15">
-        <button class="btn-setup-save" onclick="saveSetup()">✔ Save & Start Polling</button>
-      </div>
-      <div style="padding:4px 0 0;font-family:'EB Garamond',serif;font-size:.78rem;color:var(--text-dim);font-style:italic;line-height:1.5;">
-        Settings saved in your browser. Webhook sends accept/reject to your private Discord admin channel.
-      </div>
+  <!-- SETUP TAB -->
+  <div id="appsSetupTab" style="display:none;padding:0;">
+    <div class="apps-setup-box">
+      <label>GitHub applications.json Raw URL</label>
+      <input type="text" id="cfgGithubUrl" placeholder="https://raw.githubusercontent.com/…/applications.json">
+      <label>Discord Webhook URL</label>
+      <input type="text" id="cfgWebhook" placeholder="https://discord.com/api/webhooks/…">
+      <label>Poll Interval (seconds)</label>
+      <input type="number" id="cfgInterval" placeholder="15" min="10" max="300" value="15">
+      <button class="btn-setup-save" onclick="saveSetup()">✔ Save & Start Polling</button>
     </div>
-
-  </div><!-- apps-panel-body -->
+    <div style="padding:0 12px 10px;font-family:'EB Garamond',serif;font-size:.8rem;color:var(--text-dim);font-style:italic;line-height:1.5;">
+      Settings are saved in your browser's localStorage. The webhook URL is only used to send accept/reject messages to your private Discord admin channel.
+    </div>
+  </div>
 
 </div><!-- apps-panel -->
-</div><!-- body-area -->
 </div><!-- app -->
 
 <div class="ver-foot">RadSaw Appointment Planner · v1.2.1</div>
@@ -1567,35 +1498,25 @@ function loadSetupFromStorage(){
 }
 
 function saveSetup(){
-  pollCfg.url      = document.getElementById('cfgGithubUrl').value.trim();
+  pollCfg.url = DEFAULT_GITHUB_URL; // locked
   pollCfg.webhook  = document.getElementById('cfgWebhook').value.trim();
   pollCfg.interval = Math.max(10, parseInt(document.getElementById('cfgInterval').value)||15);
   try{ localStorage.setItem('radsaw_admin_cfg', JSON.stringify(pollCfg)); }catch(e){}
-  
+  showAppsTab('list', document.querySelector('.apps-tab'));
   startPolling();
   toastMsg('⚙ Setup saved. Polling started.');
 }
 
-// --- Panel toggle ---
-function toggleAppsPanel(){
-  const panel = document.getElementById('appsPanel');
-  panel.classList.toggle('expanded');
+// --- Tabs ---
+function showAppsTab(tab, el){
+  document.getElementById('appsListTab').style.display  = tab==='list'  ? 'flex'   : 'none';
+  document.getElementById('appsSetupTab').style.display = tab==='setup' ? 'block'  : 'none';
+  document.getElementById('appsListTab').style.flexDirection = 'column';
+  document.getElementById('appsListTab').style.flex = '1';
+  document.getElementById('appsListTab').style.overflow = 'hidden';
+  document.querySelectorAll('.apps-tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
 }
-
-function toggleSetupPane(){
-  const pane = document.getElementById('appsSetupPane');
-  const btn  = document.getElementById('setupToggleBtn');
-  const panel = document.getElementById('appsPanel');
-  const isVis = pane.classList.toggle('vis');
-  btn.classList.toggle('active', isVis);
-  // Auto-expand panel if not already
-  if(isVis && !panel.classList.contains('expanded')){
-    panel.classList.add('expanded');
-  }
-}
-
-// legacy stub — no-op
-function showAppsTab(){}
 
 // --- Filter ---
 function setFilter(f, el){
@@ -1627,11 +1548,8 @@ async function fetchApps(){
     badge.textContent = pending;
     badge.classList.toggle('vis', pending > 0);
     const mBadge = document.getElementById('mnavBadge');
-    if(mBadge){ mBadge.textContent = pending; mBadge.classList.toggle('vis', pending > 0); }
-    // Auto-expand panel on PC when there are pending apps
-    if(pending > 0 && window.innerWidth > 768){
-      document.getElementById('appsPanel').classList.add('expanded');
-    }
+    mBadge.textContent = pending;
+    mBadge.classList.toggle('vis', pending > 0);
     renderApps();
   } catch(e){
     setPollStatus('err', 'Fetch error: ' + e.message);
@@ -1651,12 +1569,11 @@ function renderApps(){
   if(appsFilter !== 'all') filtered = appsData.filter(a=>a.status===appsFilter);
 
   if(!filtered.length){
-    const msg = appsData.length ? 'No '+appsFilter+' applications.' : 'No applications loaded yet.';
-    list.innerHTML = `<div class="apps-empty">${msg}</div>`;
+    list.innerHTML = `<div class="apps-empty">${appsData.length ? 'No '+appsFilter+' applications.' : 'No applications loaded yet.'}</div>`;
     return;
   }
 
-  // Sort: pending first, then submitted_at desc
+  // Sort: pending first, then by submitted_at desc
   filtered = [...filtered].sort((a,b)=>{
     if(a.status==='pending' && b.status!=='pending') return -1;
     if(b.status==='pending' && a.status!=='pending') return 1;
@@ -1667,9 +1584,7 @@ function renderApps(){
     const isPending = app.status === 'pending';
     const pillClass = `pill-${app.status||'pending'}`;
     const statusLabel = (app.status||'pending').toUpperCase();
-    const posClean = (app.position_applied_to||'').replace(/\p{Emoji}/gu,'').trim();
-    const safeName = (app.Username||'').replace(/'/g,"\\'");
-    const safePos  = posClean.replace(/'/g,"\\'");
+    const posClean = (app.position_applied_to||'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
     return `
     <div class="app-card status-${app.status||'pending'}" id="card-${app._id}">
       <div class="app-card-head">
@@ -1677,17 +1592,17 @@ function renderApps(){
         <span class="app-status-pill ${pillClass}">${statusLabel}</span>
       </div>
       <div class="app-card-body">
-        <div class="app-row"><span class="app-lbl">Player</span><span class="app-val" title="${app.Username||''}">${app.Username||'—'}</span></div>
+        <div class="app-row"><span class="app-lbl">Player</span><span class="app-val">${app.Username||'—'}</span></div>
         <div class="app-row"><span class="app-lbl">Alliance</span><span class="app-val gold">[${app.alliance_tag||'?'}] ${app.alliance_name||'—'}</span></div>
         <div class="app-row"><span class="app-lbl">Date</span><span class="app-val">${app.date_of_position||'—'}</span></div>
         <div class="app-row"><span class="app-lbl">Slot</span><span class="app-val gold">${app.picked_time_slot||'—'}</span></div>
-        ${app.actioned_at?`<div class="app-row"><span class="app-lbl">Actioned</span><span class="app-val" style="font-size:.72rem;color:var(--text-dim)">${app.actioned_at}</span></div>`:''}
+        ${app.actioned_at?`<div class="app-row"><span class="app-lbl">Actioned</span><span class="app-val" style="font-size:.74rem;color:var(--text-dim)">${app.actioned_at}</span></div>`:''}
       </div>
       ${isPending ? `
       <div class="app-actions">
-        <button class="btn-accept" onclick="actionApp('accept','${app._id}','${safePos}','${safeName}')">&#10004; Accept</button>
-        <button class="btn-place" onclick="placeOnTimeline('${app._id}')">&#128204; Place</button>
-        <button class="btn-reject" onclick="actionApp('reject','${app._id}','${safePos}','${safeName}')">&#10005; Reject</button>
+        <button class="btn-accept" onclick="actionApp('accept','${app._id}','${(posClean).replace(/'/g,"\\'")}','${(app.Username||'').replace(/'/g,"\\'")}')">✔ Accept</button>
+        <button class="btn-place" onclick="placeOnTimeline('${app._id}')">📌 Place</button>
+        <button class="btn-reject" onclick="actionApp('reject','${app._id}','${(posClean).replace(/'/g,"\\'")}','${(app.Username||'').replace(/'/g,"\\'")}')">✕ Reject</button>
       </div>` : ''}
     </div>`;
   }).join('');
@@ -1838,19 +1753,16 @@ function mobileNav(tab, el){
   // Show selected
   if(tab === 'sidebar')  document.querySelector('aside').classList.add('mob-active');
   if(tab === 'timeline') document.querySelector('.tl-wrap').classList.add('mob-active');
-  if(tab === 'apps'){
-    const panel = document.querySelector('.apps-panel');
-    panel.classList.add('mob-active');
-    panel.classList.add('expanded');
-    renderApps();
-  }
+  if(tab === 'apps')     document.querySelector('.apps-panel').classList.add('mob-active');
 
   // Update nav active state
   document.querySelectorAll('.mnav-tab').forEach(t=>t.classList.remove('active'));
   if(el) el.classList.add('active');
 
-  // Re-render canvas when switching to timeline
-  if(tab === 'timeline') setTimeout(()=>{ renderCanvas(); }, 50);
+  // Re-render canvas when switching to timeline (size may have changed)
+  if(tab === 'timeline'){
+    setTimeout(()=>{ renderCanvas(); }, 50);
+  }
 }
 init();
 </script>
