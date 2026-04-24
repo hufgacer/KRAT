@@ -69,5 +69,42 @@
     "position_applied_to": "Chief Minister 📯",
     "date_of_position": "Friday 24 April",
     "picked_time_slot": "02:00 - 02:30 UTC"
+  },
+  {
+    "submitted_at": "2026-04-23 22:41:42 UTC",
+    "discord_id": "1155153571201945600",
+    "Username": "Madam Bee",
+    "UserID": "92013189",
+    "alliance_name": "TheKingsDragons",
+    "alliance_tag": "TKD",
+    "position_applied_to": "Noble Advisor 🧲",
+    "date_of_position": "Sunday 26 April",
+    "picked_time_slot": "00:30 - 01:00 UTC"
+  },
+  {
+    "_id": "2b4302349435",
+    "status": "pending",
+    "submitted_at": "2026-04-24 20:58:54 UTC",
+    "discord_id": "263399964191883264",
+    "Username": "B0MBl",
+    "UserID": "79089293",
+    "alliance_name": "TheKingsDragons",
+    "alliance_tag": "TKD",
+    "position_applied_to": "Chief Minister 📯",
+    "date_of_position": "Saturday 25 April",
+    "picked_time_slot": "00:30 - 01:00 UTC"
+  },
+  {
+    "_id": "7cf8ec75ce06",
+    "status": "pending",
+    "submitted_at": "2026-04-24 21:06:31 UTC",
+    "discord_id": "263399964191883264",
+    "Username": "B0MBl",
+    "UserID": "79089293",
+    "alliance_name": "TheKingsDragons",
+    "alliance_tag": "TKD",
+    "position_applied_to": "Chief Minister 📯",
+    "date_of_position": "Saturday 25 April",
+    "picked_time_slot": "00:00 - 00:30 UTC"
   }
 ]
