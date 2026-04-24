@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RadSaw Admin Planner — Castle Positions</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0a06;--surface:#16120b;--surface2:#1e1810;
+  --border:#3a2e1a;--border-gold:#8b6914;
+  --gold:#c9962a;--gold-light:#e8bb55;--gold-bright:#f5d170;
+  --text:#e8d9b8;--text-muted:#8a7a5a;--text-dim:#5a4e36;
+  --crimson:#c42b2b;
+  --row-h:90px;   /* height of each position row */
+  --lbl-w:172px;  /* width of the frozen position label column */
+  --px-per-min:3; /* pixels per minute — set by JS too */
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'EB Garamond',serif;font-size:15px;min-height:100vh;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:.35;}
+
+/* ── HEADER ── */
+header{position:relative;text-align:center;padding:14px 20px 11px;border-bottom:1px solid var(--border-gold);background:linear-gradient(180deg,#1a140a 0%,var(--bg) 100%);flex-shrink:0;}
+header::after{content:'';position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);width:60%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+header h1{font-family:'Cinzel Decorative',serif;font-size:clamp(1rem,2.5vw,1.65rem);font-weight:900;color:var(--gold-bright);letter-spacing:.08em;text-shadow:0 0 28px rgba(201,150,42,.4),0 2px 4px #000;margin:3px 0 2px;}
+.header-sub{display:flex;align-items:center;justify-content:center;gap:10px;}
+.subtitle{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.2em;color:var(--text-muted);text-transform:uppercase;}
+.ver-badge{font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.1em;color:var(--text-dim);background:var(--surface2);border:1px solid var(--border);padding:2px 7px;border-radius:3px;}
+
+/* ── APP SHELL ── */
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.body-area{display:flex;flex-direction:column;flex:1;overflow:hidden;position:relative;z-index:1;}
+.top-area{display:flex;flex:1;min-height:0;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+aside{width:300px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:13px 12px;display:flex;flex-direction:column;gap:13px;}
+aside::-webkit-scrollbar{width:4px;}
+aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
+.section-title{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:7px;}
+
+/* UTC CLOCK */
+.clock-box{background:var(--surface2);border:1px solid var(--border-gold);border-radius:5px;padding:8px 12px;text-align:center;position:relative;overflow:hidden;}
+.clock-box::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,150,42,.05),transparent 60%);pointer-events:none;}
+.clock-label{font-family:'Cinzel',serif;font-size:.52rem;letter-spacing:.26em;text-transform:uppercase;color:var(--text-dim);margin-bottom:2px;}
+.clock-time{font-family:'Cinzel Decorative',serif;font-size:1.2rem;font-weight:700;color:var(--gold-bright);letter-spacing:.06em;text-shadow:0 0 14px rgba(245,209,112,.35);line-height:1;}
+.clock-date{font-family:'EB Garamond',serif;font-size:.75rem;color:var(--text-muted);margin-top:2px;font-style:italic;}
+.clock-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--gold);margin-right:4px;vertical-align:middle;animation:pdot 1s ease-in-out infinite;box-shadow:0 0 5px var(--gold);}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.25;transform:scale(.6);}}
+
+/* FORM */
+.form-row{margin-bottom:0;}
+.form-row label{display:block;font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;}
+.form-row select,.form-row input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:4px;font-family:'EB Garamond',serif;font-size:.86rem;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;}
+.form-row select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b6914' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px;}
+.form-row select:focus,.form-row input:focus{border-color:var(--gold);}
+.form-row input::placeholder{color:var(--text-dim);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.appt-form{display:flex;flex-direction:column;gap:6px;}
+.hint-text{font-family:'EB Garamond',serif;font-size:.74rem;color:var(--text-dim);font-style:italic;min-height:1.2em;}
+
+.btn-gold{background:linear-gradient(135deg,#7a5010,#c9962a);border:1px solid var(--gold);color:#fdf0c0;font-family:'Cinzel',serif;font-size:.64rem;letter-spacing:.08em;padding:6px 10px;border-radius:4px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-gold:hover{background:linear-gradient(135deg,#9a6518,#e8bb55);box-shadow:0 0 10px rgba(201,150,42,.35);}
+.btn-submit{width:100%;background:linear-gradient(135deg,#5a0e0e,#8b1a1a,#c42b2b);border:1px solid var(--crimson);color:#ffd8d8;font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;padding:8px;border-radius:4px;cursor:pointer;transition:all .2s;text-transform:uppercase;margin-top:2px;}
+.btn-submit:hover{background:linear-gradient(135deg,#7a1212,#b02222,#e03535);box-shadow:0 0 12px rgba(180,40,40,.5);}
+.csv-row{display:flex;gap:5px;}
+.csv-row button,.btn-imp{flex:1;padding:6px 4px;font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.07em;text-transform:uppercase;border-radius:4px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+.btn-exp{background:linear-gradient(135deg,#0e3a1a,#1a6a30);border:1px solid #2a9a48;color:#a0f0b0;}
+.btn-exp:hover{background:linear-gradient(135deg,#165228,#22883c);}
+.btn-imp{background:linear-gradient(135deg,#0a1e3a,#1a3a6a);border:1px solid #2a60aa;color:#a0c0f0;}
+.btn-imp:hover{background:linear-gradient(135deg,#122a52,#2255aa);}
+#csvInput{display:none;}
+
+/* ALLIANCE LIST */
+.al-list{display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;}
+.al-list::-webkit-scrollbar{width:3px;}
+.al-list::-webkit-scrollbar-thumb{background:var(--border-gold);}
+.al-chip{display:flex;align-items:center;gap:5px;padding:4px 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);font-family:'Cinzel',serif;font-size:.68rem;transition:border-color .2s;}
+.al-chip:hover{border-color:var(--border-gold);}
+.al-swatch{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.al-tag{font-family:'Cinzel',serif;font-size:.6rem;color:var(--gold-light);background:rgba(201,150,42,.1);padding:1px 4px;border-radius:2px;border:1px solid rgba(201,150,42,.18);}
+.al-chip .del{margin-left:auto;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:.75rem;transition:color .2s;padding:0 1px;}
+.al-chip .del:hover{color:var(--crimson);}
+.add-al-wrap{display:flex;gap:4px;margin-top:5px;align-items:flex-end;}
+.add-al-inputs{flex:1;display:flex;flex-direction:column;gap:3px;}
+.add-al-inputs input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-family:'EB Garamond',serif;font-size:.84rem;outline:none;transition:border-color .2s;}
+.add-al-inputs input:focus{border-color:var(--gold);}
+.add-al-inputs input::placeholder{color:var(--text-dim);}
+.tag-inp{font-family:'Cinzel',serif!important;font-size:.76rem!important;text-transform:uppercase;letter-spacing:.06em;}
+
+/* LOCK PANEL */
+.lock-list{display:flex;flex-direction:column;gap:4px;}
+.lk-row{display:flex;align-items:center;justify-content:space-between;padding:4px 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);}
+.lk-name{font-family:'Cinzel',serif;font-size:.57rem;letter-spacing:.05em;color:var(--text-muted);}
+.lk-toggle{display:flex;align-items:center;gap:4px;cursor:pointer;}
+.lk-toggle input[type=checkbox]{display:none;}
+.trk{width:28px;height:15px;border-radius:8px;background:var(--border);border:1px solid var(--border-gold);position:relative;transition:background .2s;}
+.trk::after{content:'';position:absolute;top:2px;left:2px;width:9px;height:9px;border-radius:50%;background:var(--text-dim);transition:transform .2s,background .2s;}
+.lk-toggle input:checked~.trk{background:rgba(139,26,26,.55);}
+.lk-toggle input:checked~.trk::after{transform:translateX(13px);background:var(--crimson);}
+.lk-lbl{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.09em;color:var(--text-dim);text-transform:uppercase;min-width:38px;}
+.lk-toggle input:checked~.trk~.lk-lbl{color:var(--crimson);}
+
+/* STATS */
+.stats-bar{display:flex;gap:5px;flex-wrap:wrap;}
+.stat-chip{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 8px;font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.06em;color:var(--text-muted);}
+.stat-chip strong{color:var(--gold-light);}
+
+/* ══════════════════════════════════════════════
+   THE TIMETABLE
+   Layout:
+   - Frozen left column: position labels (var(--lbl-w) wide)
+   - Frozen top row: time axis (scrolls horizontally only)
+   - Body: scrolls both X (time) and Y (positions, though 6 rows are fine)
+   The "infinite" scroll is just a very wide canvas: 3 days rendered at once
+   centred on today, user can scroll right into tomorrow.
+══════════════════════════════════════════════ */
+.tl-wrap{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+
+/* The sticky top-left corner cell */
+.tl-corner{
+  position:absolute;
+  top:0;left:0;
+  width:var(--lbl-w);
+  height:56px;
+  background:var(--surface);
+  border-right:2px solid var(--border-gold);
+  border-bottom:2px solid var(--border-gold);
+  z-index:30;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Cinzel',serif;font-size:.52rem;letter-spacing:.18em;color:var(--text-dim);text-transform:uppercase;
+}
+
+/* Time axis header — scrolls horizontally, frozen vertically */
+.tl-time-axis{
+  position:absolute;
+  top:0;
+  left:var(--lbl-w);
+  right:0;
+  height:56px;
+  overflow:hidden;
+  z-index:20;
+  border-bottom:2px solid var(--border-gold);
+}
+.tl-time-axis-inner{
+  position:absolute;
+  top:0;left:0;
+  height:100%;
+  /* width set by JS */
+  background:var(--surface);
+}
+.tl-tick{
+  position:absolute;
+  top:0;bottom:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Cinzel',serif;
+  pointer-events:none;
+}
+.tl-tick .tick-date{font-size:.5rem;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;line-height:1;background:rgba(201,150,42,.08);padding:1px 4px;border-radius:2px;margin-bottom:2px;}
+.tl-tick .tick-hm{font-size:.78rem;font-weight:600;color:var(--text-muted);line-height:1.2;letter-spacing:.06em;}
+.tl-tick.midnight .tick-date{color:var(--gold-bright);font-size:.58rem;}
+.tl-tick.midnight .tick-hm{color:var(--gold-light);}
+/* Vertical grid line on time axis */
+.tl-tick::after{content:'';position:absolute;bottom:0;left:50%;width:1px;height:8px;background:var(--border-gold);opacity:.5;}
+.tl-tick.midnight::after{height:100%;opacity:.18;}
+
+/* Position label column — scrolls vertically, frozen horizontally */
+.tl-pos-col{
+  position:absolute;
+  top:56px;
+  left:0;
+  width:var(--lbl-w);
+  bottom:0;
+  overflow:hidden;
+  z-index:20;
+  border-right:2px solid var(--border-gold);
+}
+.tl-pos-col-inner{
+  position:absolute;
+  top:0;left:0;right:0;
+  /* height = 6 * row-h, set by JS */
+}
+.tl-pos-lbl{
+  height:var(--row-h);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:6px 8px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  cursor:help;
+  transition:background .15s;
+  gap:4px;
+  text-align:center;
+}
+.tl-pos-lbl:hover{background:#1a160c;}
+.tl-pos-lbl .pos-icon{width:26px;height:26px;flex-shrink:0;}
+.tl-pos-lbl .pos-name{font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.06em;color:var(--gold);text-transform:uppercase;line-height:1.3;}
+.tl-pos-lbl .pos-mode{font-family:'Cinzel',serif;font-size:.48rem;letter-spacing:.08em;text-transform:uppercase;padding:1px 4px;border-radius:2px;width:fit-content;}
+.tl-pos-lbl .pos-mode.open{color:var(--gold);background:rgba(201,150,42,.1);border:1px solid rgba(201,150,42,.2);}
+.tl-pos-lbl .pos-mode.locked{color:var(--crimson);background:rgba(180,40,40,.1);border:1px solid rgba(180,40,40,.22);}
+
+/* The scrollable body — both axes */
+.tl-scroll{
+  position:absolute;
+  top:56px;
+  left:var(--lbl-w);
+  right:0;
+  bottom:0;
+  overflow:scroll;
+  z-index:10;
+}
+.tl-scroll::-webkit-scrollbar{width:6px;height:6px;}
+.tl-scroll::-webkit-scrollbar-track{background:var(--surface);}
+.tl-scroll::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:3px;}
+
+/* Canvas inside scroll area */
+.tl-canvas{
+  position:relative;
+  /* width & height set by JS */
+}
+
+/* Row background bands */
+.tl-row-bg{
+  position:absolute;
+  left:0;right:0;
+  height:var(--row-h);
+  border-bottom:1px solid var(--border);
+}
+.tl-row-bg.even{background:var(--surface2);}
+.tl-row-bg.odd{background:#181309;}
+
+/* Vertical hour grid lines */
+.tl-vline{
+  position:absolute;
+  top:0;bottom:0;
+  width:1px;
+  background:var(--border);
+  opacity:.5;
+  pointer-events:none;
+}
+.tl-vline.midnight{background:var(--border-gold);opacity:.35;width:2px;}
+
+/* Appointment blocks */
+.appt-blk{
+  position:absolute;
+  border-radius:4px;
+  border-left:3px solid;
+  padding:5px 22px 5px 8px;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  overflow:visible;
+  cursor:pointer;
+  z-index:5;
+  transition:filter .15s;
+  min-width:60px;
+  text-align:center;
+}
+.appt-blk:hover{filter:brightness(1.18);z-index:6;}
+.appt-tagname{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.04em;color:rgba(255,255,255,.95);white-space:normal;word-break:break-word;line-height:1.35;text-align:center;}
+.appt-tagname .tag{color:var(--gold-bright);font-weight:700;display:block;}
+.appt-cd{font-family:'Cinzel Decorative',serif;font-size:.7rem;font-weight:700;color:var(--gold-bright);text-shadow:0 0 7px rgba(245,209,112,.5);letter-spacing:.03em;line-height:1.2;white-space:nowrap;margin-top:2px;}
+.appt-blk .rm{position:absolute;top:3px;right:3px;background:none;border:none;color:inherit;opacity:0;cursor:pointer;font-size:.65rem;z-index:7;padding:0;transition:opacity .15s;}
+.appt-blk:hover .rm{opacity:.7;}
+.appt-blk .rm:hover{opacity:1;}
+.appt-blk.active-now{animation:ablk-pulse 2.5s ease-in-out infinite;}
+@keyframes ablk-pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,209,112,0);}50%{box-shadow:0 0 12px 2px rgba(245,209,112,.22);}}
+
+/* Blind overlay (covers past time) */
+.blind-layer{
+  position:absolute;
+  top:0;bottom:0;
+  background:rgba(6,4,2,.60);
+  pointer-events:none;
+  z-index:8;
+}
+/* Gold "now" edge line */
+.now-edge{
+  position:absolute;
+  top:0;bottom:0;
+  width:2px;
+  background:linear-gradient(180deg,transparent 0%,var(--gold) 20%,var(--gold-bright) 50%,var(--gold) 80%,transparent 100%);
+  box-shadow:0 0 8px rgba(245,209,112,.6);
+  z-index:9;
+  pointer-events:none;
+}
+.now-edge::before{
+  content:'▶';font-size:.55rem;color:var(--gold-bright);
+  position:absolute;top:4px;left:3px;text-shadow:0 0 6px var(--gold);
+}
+
+/* Day separator label */
+.day-label{
+  position:absolute;
+  top:3px;
+  font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.14em;color:var(--gold);
+  text-transform:uppercase;pointer-events:none;z-index:4;
+  background:var(--bg);padding:1px 5px;border-radius:2px;
+  border:1px solid rgba(201,150,42,.25);
+}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:#1e1810;border:1px solid var(--gold);color:var(--gold-light);padding:9px 15px;border-radius:5px;font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.06em;z-index:10000;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none;max-width:270px;box-shadow:0 8px 28px rgba(0,0,0,.6);}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* VERSION FOOTER */
+.ver-foot{position:fixed;bottom:8px;left:12px;font-family:'Cinzel',serif;font-size:.54rem;letter-spacing:.13em;color:var(--text-dim);z-index:100;pointer-events:none;}
+
+/* TOOLTIP */
+.tt{position:fixed;z-index:9999;pointer-events:none;opacity:0;transform:translateY(5px);transition:opacity .16s,transform .16s;max-width:240px;}
+.tt.vis{opacity:1;transform:translateY(0);}
+.tt-inner{background:#1a1508;border:1px solid var(--border-gold);border-radius:5px;padding:9px 12px;box-shadow:0 8px 28px rgba(0,0,0,.75);}
+.tt-inner::before{content:'';position:absolute;top:-5px;left:50%;width:8px;height:8px;background:#1a1508;border-left:1px solid var(--border-gold);border-top:1px solid var(--border-gold);transform:translateX(-50%) rotate(45deg);}
+.tt-title{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.1em;color:var(--gold-bright);margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--border);text-align:center;}
+.tt-stat{display:flex;align-items:flex-start;gap:5px;margin-bottom:3px;font-family:'EB Garamond',serif;font-size:.83rem;color:var(--text);line-height:1.3;}
+.tt-stat:last-child{margin-bottom:0;}
+.tt-stat::before{content:'◆';color:var(--gold);font-size:.48rem;margin-top:3px;flex-shrink:0;}
+.tt-stat .sv{color:var(--gold-light);font-weight:600;}
+
+/* FIELD TICK VALIDATION */
+.field-wrap{position:relative;}
+.field-tick{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.85rem;opacity:0;transition:opacity .2s;pointer-events:none;}
+.field-tick.ok{color:#3db850;opacity:1;}
+.field-tick.err{color:var(--crimson);opacity:1;}
+.field-wrap input{padding-right:28px!important;}
+
+/* ALLIANCE INPUT TICKS */
+.al-field-row{position:relative;display:flex;align-items:center;gap:0;}
+.al-field-row input{flex:1;}
+.al-field-tick{font-size:.85rem;width:20px;text-align:center;flex-shrink:0;color:transparent;transition:color .2s;}
+.al-field-tick.ok{color:#3db850;}
+
+/* EDIT ALLIANCE MODAL */
+.edit-al-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:5001;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
+.edit-al-modal-overlay.vis{opacity:1;pointer-events:auto;}
+.edit-al-modal{background:linear-gradient(160deg,#1a140a,#0f0c06);border:1px solid var(--border-gold);border-radius:8px;padding:22px 26px;min-width:280px;max-width:360px;box-shadow:0 16px 48px rgba(0,0,0,.85);position:relative;}
+.edit-al-modal-title{font-family:'Cinzel Decorative',serif;font-size:.72rem;letter-spacing:.14em;color:var(--gold-bright);text-align:center;margin-bottom:14px;text-transform:uppercase;}
+.edit-al-modal .form-row{margin-bottom:8px;}
+.edit-al-modal .form-row label{display:block;font-family:'Cinzel',serif;font-size:.54rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);margin-bottom:3px;}
+.edit-al-modal .form-row input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:4px;font-family:'EB Garamond',serif;font-size:.9rem;outline:none;transition:border-color .2s;}
+.edit-al-modal .form-row input:focus{border-color:var(--gold);}
+.edit-al-btns{display:flex;gap:6px;margin-top:12px;}
+.al-chip .edit-btn{margin-left:auto;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:.7rem;transition:color .2s;padding:0 2px;}
+.al-chip .edit-btn:hover{color:var(--gold);}
+.al-chip .del{margin-left:2px;}
+.appt-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:5000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
+.appt-modal-overlay.vis{opacity:1;pointer-events:auto;}
+.appt-modal{background:linear-gradient(160deg,#1a140a,#0f0c06);border:1px solid var(--border-gold);border-radius:8px;padding:22px 26px;min-width:320px;max-width:420px;box-shadow:0 16px 48px rgba(0,0,0,.85);position:relative;}
+.appt-modal::before{content:'';position:absolute;inset:0;border-radius:8px;background:linear-gradient(135deg,rgba(201,150,42,.06),transparent 55%);pointer-events:none;}
+.appt-modal-title{font-family:'Cinzel Decorative',serif;font-size:.78rem;letter-spacing:.14em;color:var(--gold-bright);text-align:center;margin-bottom:4px;text-transform:uppercase;}
+.appt-modal-pos{font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.2em;color:var(--gold);text-align:center;margin-bottom:16px;text-transform:uppercase;opacity:.8;}
+.appt-modal-divider{height:1px;background:linear-gradient(90deg,transparent,var(--border-gold),transparent);margin:10px 0;}
+.appt-modal-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(58,46,26,.5);}
+.appt-modal-row:last-of-type{border-bottom:none;}
+.appt-modal-label{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.14em;color:var(--text-dim);text-transform:uppercase;flex-shrink:0;margin-right:10px;}
+.appt-modal-val{font-family:'EB Garamond',serif;font-size:.92rem;color:var(--text);text-align:right;}
+.appt-modal-val.gold{color:var(--gold-light);font-weight:600;}
+.appt-modal-close{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-dim);font-size:1rem;cursor:pointer;transition:color .2s;line-height:1;}
+.appt-modal-close:hover{color:var(--gold);}
+
+/* Row bg cells centered */
+.tl-row-bg{display:flex;align-items:center;justify-content:center;}
+
+/* EDIT ALLIANCE MODAL */
+.edit-al-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:5001;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
+.edit-al-modal-overlay.vis{opacity:1;pointer-events:auto;}
+.edit-al-modal{background:linear-gradient(160deg,#1a140a,#0f0c06);border:1px solid var(--border-gold);border-radius:8px;padding:22px 26px;min-width:280px;max-width:360px;box-shadow:0 16px 48px rgba(0,0,0,.85);position:relative;}
+.edit-al-modal-title{font-family:'Cinzel Decorative',serif;font-size:.72rem;letter-spacing:.14em;color:var(--gold-bright);text-align:center;margin-bottom:14px;text-transform:uppercase;}
+.edit-al-modal .erow{margin-bottom:8px;}
+.edit-al-modal .erow label{display:block;font-family:'Cinzel',serif;font-size:.54rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);margin-bottom:3px;}
+.edit-al-modal .erow input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:4px;font-family:'EB Garamond',serif;font-size:.9rem;outline:none;transition:border-color .2s;}
+.edit-al-modal .erow input:focus{border-color:var(--gold);}
+.edit-al-btns{display:flex;gap:6px;margin-top:14px;}
+.al-chip .edit-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:.7rem;transition:color .2s;padding:0 2px;margin-left:auto;}
+.al-chip .edit-btn:hover{color:var(--gold-light);}
+.al-chip .del{margin-left:2px;}
+/* ══════════════════════════════════════
+   APPLICATIONS PANEL — BOTTOM DRAWER (PC)
+══════════════════════════════════════ */
+
+/* Collapse toggle handle */
+.apps-panel{
+  flex-shrink:0;
+  border-top:2px solid var(--border-gold);
+  background:var(--surface);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  position:relative;z-index:2;
+  /* Default height — collapsed shows just the handle bar */
+  height:44px;
+  transition:height .3s cubic-bezier(.4,0,.2,1);
+}
+.apps-panel.expanded{
+  height:42vh;
+  min-height:220px;
+}
+
+/* Drag handle / header bar */
+.apps-panel-header{
+  height:44px;flex-shrink:0;
+  padding:0 14px;
+  display:flex;align-items:center;gap:10px;
+  cursor:pointer;
+  background:linear-gradient(90deg,#1a140a,var(--surface) 40%);
+  border-bottom:1px solid transparent;
+  transition:border-color .2s;
+  user-select:none;
+}
+.apps-panel.expanded .apps-panel-header{
+  border-bottom-color:var(--border-gold);
+}
+.apps-chevron{
+  font-size:.7rem;color:var(--gold);
+  transition:transform .3s;flex-shrink:0;
+}
+.apps-panel.expanded .apps-chevron{ transform:rotate(180deg); }
+
+.apps-panel-title{
+  font-family:'Cinzel Decorative',serif;
+  font-size:.62rem;letter-spacing:.12em;
+  color:var(--gold-bright);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;flex:1;
+}
+.apps-badge{
+  background:var(--crimson);color:#fff;
+  font-family:'Cinzel',serif;font-size:.55rem;
+  padding:1px 6px;border-radius:10px;
+  min-width:18px;text-align:center;
+  display:none;
+}
+.apps-badge.vis{display:inline-block;}
+
+/* Status dot + filters all in header bar */
+.apps-header-right{
+  display:flex;align-items:center;gap:8px;margin-left:auto;
+}
+.apps-filter-row{
+  display:flex;gap:4px;
+}
+.filter-btn{
+  font-family:'Cinzel',serif;font-size:.5rem;letter-spacing:.08em;
+  text-transform:uppercase;padding:3px 9px;border-radius:3px;
+  cursor:pointer;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text-muted);
+  transition:all .18s;
+}
+.filter-btn.active{border-color:var(--gold);color:var(--gold-light);background:rgba(201,150,42,.1);}
+.poll-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--text-dim);flex-shrink:0;
+  transition:background .3s;
+}
+.poll-dot.live{background:#3db850;box-shadow:0 0 5px #3db850;}
+.poll-dot.err{background:var(--crimson);}
+
+/* Body below header */
+.apps-panel-body{
+  flex:1;display:flex;overflow:hidden;min-height:0;
+}
+
+/* Cards scroll area */
+.apps-list{
+  flex:1;overflow-x:auto;overflow-y:hidden;
+  display:flex;gap:10px;padding:10px 12px;
+  align-items:flex-start;
+}
+.apps-list::-webkit-scrollbar{height:4px;}
+.apps-list::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
+
+/* Cards — horizontal layout, fixed width */
+.app-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;overflow:hidden;
+  transition:border-color .2s;
+  flex-shrink:0;width:230px;
+  display:flex;flex-direction:column;
+  height:100%;
+}
+.app-card:hover{border-color:var(--border-gold);}
+.app-card.status-accepted{border-top:3px solid #3db850;}
+.app-card.status-rejected{border-top:3px solid var(--crimson);}
+.app-card.status-pending{border-top:3px solid var(--gold);}
+
+.app-card-head{
+  padding:8px 10px 5px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:6px;
+}
+.app-pos{
+  font-family:'Cinzel',serif;font-size:.58rem;
+  letter-spacing:.05em;color:var(--gold-light);
+  text-transform:uppercase;line-height:1.3;flex:1;
+}
+.app-status-pill{
+  font-family:'Cinzel',serif;font-size:.48rem;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 6px;border-radius:10px;
+  flex-shrink:0;
+}
+.pill-pending{background:rgba(201,150,42,.15);color:var(--gold);border:1px solid rgba(201,150,42,.3);}
+.pill-accepted{background:rgba(61,184,80,.15);color:#3db850;border:1px solid rgba(61,184,80,.3);}
+.pill-rejected{background:rgba(196,43,43,.15);color:#e05555;border:1px solid rgba(196,43,43,.3);}
+
+.app-card-body{
+  padding:0 10px 6px;
+  display:flex;flex-direction:column;gap:3px;
+  flex:1;
+}
+.app-row{display:flex;gap:5px;align-items:baseline;}
+.app-lbl{
+  font-family:'Cinzel',serif;font-size:.46rem;
+  letter-spacing:.1em;color:var(--text-dim);
+  text-transform:uppercase;flex-shrink:0;min-width:50px;
+}
+.app-val{
+  font-family:'EB Garamond',serif;font-size:.8rem;
+  color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.app-val.gold{color:var(--gold-light);}
+
+.app-actions{
+  display:flex;gap:4px;padding:6px 8px 8px;
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+.btn-accept{
+  flex:1;padding:5px 0;
+  background:linear-gradient(135deg,#1a4a20,#2d8a3e);
+  border:1px solid #3db850;color:#c0f0c8;
+  font-family:'Cinzel',serif;font-size:.52rem;
+  letter-spacing:.06em;border-radius:3px;
+  cursor:pointer;transition:all .18s;
+}
+.btn-accept:hover{background:linear-gradient(135deg,#22642a,#3aaa4e);box-shadow:0 0 8px rgba(61,184,80,.3);}
+.btn-reject{
+  flex:1;padding:5px 0;
+  background:linear-gradient(135deg,#4a1a1a,#8a2a2a);
+  border:1px solid var(--crimson);color:#ffd0d0;
+  font-family:'Cinzel',serif;font-size:.52rem;
+  letter-spacing:.06em;border-radius:3px;
+  cursor:pointer;transition:all .18s;
+}
+.btn-reject:hover{background:linear-gradient(135deg,#641a1a,#aa3535);box-shadow:0 0 8px rgba(196,43,43,.3);}
+.btn-place{
+  flex:1;padding:5px 0;
+  background:linear-gradient(135deg,#1a2a4a,#2a4a8a);
+  border:1px solid #4a7acc;color:#c0d8ff;
+  font-family:'Cinzel',serif;font-size:.52rem;
+  letter-spacing:.06em;border-radius:3px;
+  cursor:pointer;transition:all .18s;
+}
+.btn-place:hover{background:linear-gradient(135deg,#223366,#3a5aaa);box-shadow:0 0 8px rgba(74,122,204,.3);}
+
+/* Empty state */
+.apps-empty{
+  display:flex;align-items:center;gap:8px;
+  font-family:'EB Garamond',serif;font-style:italic;
+  font-size:.88rem;color:var(--text-dim);
+  padding:0 4px;white-space:nowrap;
+}
+
+/* Setup panel — inside apps-panel-body */
+.apps-setup-pane{
+  width:480px;flex-shrink:0;
+  padding:12px 16px;
+  overflow-y:auto;
+  display:none;
+  border-left:1px solid var(--border);
+}
+.apps-setup-pane.vis{display:block;}
+.apps-setup-box label{
+  display:block;font-family:'Cinzel',serif;font-size:.52rem;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:3px;margin-top:8px;
+}
+.apps-setup-box label:first-child{margin-top:0;}
+.apps-setup-box input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);padding:5px 8px;border-radius:4px;
+  font-family:'EB Garamond',serif;font-size:.84rem;outline:none;
+  transition:border-color .2s;
+}
+.apps-setup-box input:focus{border-color:var(--gold);}
+.apps-setup-box input::placeholder{color:var(--text-dim);}
+.btn-setup-save{
+  width:100%;margin-top:10px;
+  background:linear-gradient(135deg,#7a5010,#c9962a);
+  border:1px solid var(--gold);color:#fdf0c0;
+  font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.1em;
+  padding:6px;border-radius:4px;cursor:pointer;transition:all .2s;
+}
+.btn-setup-save:hover{background:linear-gradient(135deg,#9a6518,#e8bb55);}
+
+/* Status bar — inside body */
+.apps-status-bar{
+  padding:6px 12px;font-family:'Cinzel',serif;
+  font-size:.5rem;letter-spacing:.1em;color:var(--text-dim);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;justify-content:center;
+  gap:4px;flex-shrink:0;width:160px;
+  border-left:none;
+}
+
+/* Tabs inside header */
+.apps-panel-tabs{display:none;}/* tabs now replaced by setup icon in header */
+.apps-tab{display:none;}
+
+/* Setup toggle button in header */
+.btn-setup-toggle{
+  background:none;border:1px solid var(--border);
+  color:var(--text-dim);font-size:.75rem;padding:2px 7px;
+  border-radius:3px;cursor:pointer;transition:all .18s;flex-shrink:0;
+}
+.btn-setup-toggle:hover,.btn-setup-toggle.active{border-color:var(--gold);color:var(--gold);}
+
+/* Confirm modal */
+.confirm-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.78);
+  z-index:6000;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.confirm-overlay.vis{opacity:1;pointer-events:auto;}
+.confirm-box{
+  background:linear-gradient(160deg,#1a140a,#0f0c06);
+  border:1px solid var(--border-gold);border-radius:8px;
+  padding:22px 26px;min-width:300px;max-width:380px;
+  box-shadow:0 16px 48px rgba(0,0,0,.9);
+  font-family:'Cinzel',serif;
+}
+.confirm-title{
+  font-size:.72rem;letter-spacing:.14em;color:var(--gold-bright);
+  text-align:center;margin-bottom:10px;text-transform:uppercase;
+}
+.confirm-body{
+  font-family:'EB Garamond',serif;font-size:.9rem;
+  color:var(--text-muted);text-align:center;margin-bottom:16px;line-height:1.5;
+}
+.confirm-btns{display:flex;gap:8px;}
+/* ══════════════════════════════════════
+   MOBILE NAV BAR
+══════════════════════════════════════ */
+.mobile-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  height:56px;z-index:200;
+  background:var(--surface);
+  border-top:1px solid var(--border-gold);
+  flex-shrink:0;
+}
+.mobile-nav-tabs{
+  display:flex;height:100%;
+}
+.mnav-tab{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;
+  font-family:'Cinzel',serif;font-size:.48rem;
+  letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-dim);cursor:pointer;
+  border:none;background:none;
+  transition:color .18s;position:relative;
+}
+.mnav-tab.active{color:var(--gold);}
+.mnav-tab .mnav-icon{font-size:1.15rem;line-height:1;}
+.mnav-badge{
+  position:absolute;top:7px;right:calc(50% - 18px);
+  background:var(--crimson);color:#fff;
+  font-family:'Cinzel',serif;font-size:.48rem;
+  padding:1px 5px;border-radius:8px;
+  min-width:16px;text-align:center;
+  display:none;
+}
+.mnav-badge.vis{display:block;}
+
+/* ══════════════════════════════════════
+   RESPONSIVE BREAKPOINT — MOBILE
+══════════════════════════════════════ */
+@media (max-width: 768px) {
+  body{overflow:hidden;}
+
+  /* Header compact */
+  header{padding:8px 12px 7px;}
+  header h1{font-size:.9rem;}
+  .subtitle{display:none;}
+
+  /* App shell */
+  .app{height:calc(100vh - 56px);height:calc(100dvh - 56px);}
+
+  /* body-area stacks; top-area is a column of panels */
+  .body-area{height:100%;overflow:hidden;}
+  .top-area{height:100%;overflow:hidden;}
+
+  /* Left sidebar — hidden by default, shown via mobile nav */
+  aside{
+    position:absolute;inset:0;z-index:50;
+    width:100%;height:100%;
+    border-right:none;
+    display:none;overflow-y:auto;
+    flex-shrink:0;
+  }
+  aside.mob-active{display:flex;}
+
+  /* Timeline — full area by default */
+  .tl-wrap{width:100%;flex:1;display:none;}
+  .tl-wrap.mob-active{display:flex;}
+
+  /* Apps panel on mobile — full screen tab, not a drawer */
+  .apps-panel{
+    position:absolute;inset:0;z-index:50;
+    width:100%;height:100% !important;
+    border-top:none;
+    display:none;flex-direction:column;
+    transition:none;
+  }
+  .apps-panel.mob-active{display:flex;}
+  .apps-panel.expanded{height:100% !important;}
+
+  /* On mobile apps panel: vertical card scroll */
+  .apps-panel-body{flex-direction:column;}
+  .apps-list{
+    flex-direction:column;overflow-x:hidden;overflow-y:auto;
+    height:auto;padding:8px;
+  }
+  .apps-list::-webkit-scrollbar{width:3px;height:auto;}
+  .app-card{width:100%;height:auto;}
+
+  /* Status bar horizontal on mobile */
+  .apps-status-bar{
+    width:100%;flex-direction:row;align-items:center;
+    border-right:none;border-bottom:1px solid var(--border);
+    padding:5px 12px;gap:6px;
+  }
+
+  /* Setup pane full width */
+  .apps-setup-pane{width:100%;border-left:none;border-top:1px solid var(--border);}
+  .apps-setup-pane.vis{display:block;}
+
+  /* Filter row scrollable on mobile */
+  .apps-filter-row{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;}
+
+  /* Show bottom nav */
+  .mobile-nav{display:flex;}
+  .ver-foot{display:none;}
+
+  /* Tap targets */
+  .btn-accept,.btn-reject,.btn-place{padding:8px 0;font-size:.58rem;}
+  .confirm-box{min-width:90vw;max-width:96vw;margin:0 8px;}
+  .appt-modal{min-width:90vw;max-width:96vw;}
+  .edit-al-modal{min-width:90vw;max-width:96vw;}
+  .app-card-head{padding:9px 10px 6px;}
+  .app-card-body{padding:0 10px 8px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div style="font-size:1.6rem;">♛</div>
+  <h1>RadSaw Appointment Planner</h1>
+  <div class="header-sub">
+    <span class="subtitle">Castle Positions Timetable</span>
+    <span class="ver-badge" style="color:var(--crimson);border-color:var(--crimson);">⚔ ADMIN</span>
+    <span class="ver-badge">v1.2.1</span>
+  </div>
+</header>
+
+<div class="body-area">
+<div class="top-area">
+
+<!-- SIDEBAR -->
+<aside>
+
+  <div>
+    <div class="section-title">🌐 Live UTC Clock</div>
+    <div class="clock-box">
+      <div class="clock-label"><span class="clock-dot"></span>Coordinated Universal Time</div>
+      <div class="clock-time" id="clkTime">00:00:00</div>
+      <div class="clock-date" id="clkDate">—</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">⚜ Alliances</div>
+    <div class="al-list" id="alList"></div>
+    <div class="add-al-wrap">
+      <div class="add-al-inputs">
+        <div class="al-field-row">
+          <input type="text" id="alName" placeholder="Full alliance name…" maxlength="40" onkeydown="if(event.key==='Enter')addAlliance()" oninput="tickAlField('alName','alNameTick')">
+          <span class="al-field-tick" id="alNameTick">✔</span>
+        </div>
+        <div class="al-field-row">
+          <input type="text" id="alTag" placeholder="TAG (e.g. TKD)" maxlength="6" class="tag-inp" onkeydown="if(event.key==='Enter')addAlliance()" oninput="this.value=this.value.toUpperCase();tickAlField('alTag','alTagTick')">
+          <span class="al-field-tick" id="alTagTick">✔</span>
+        </div>
+      </div>
+      <button class="btn-gold" onclick="addAlliance()" style="align-self:flex-end;">+ Add</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">🔒 Position Mode</div>
+    <div class="lock-list" id="lockList"></div>
+  </div>
+
+  <div>
+    <div class="section-title">📜 Add Appointment</div>
+    <div class="appt-form">
+      <div class="form-row">
+        <label>Position</label>
+        <select id="fPos" onchange="onPosChange()">
+          <option value="">— Select Position —</option>
+          <option>Chief Minister</option>
+          <option>Minister of Justice</option>
+          <option>Minister of the Interior</option>
+          <option>Field Commander</option>
+          <option>Marshal</option>
+          <option>Noble Advisor</option>
+        </select>
+      </div>
+      <div class="two-col">
+        <div class="form-row">
+          <label>Start (UTC)</label>
+          <select id="fStart" onchange="onStartChange()"></select>
+        </div>
+        <div class="form-row" id="fEndRow">
+          <label>End (UTC) <span id="fEndLbl" style="color:var(--text-dim);font-size:.52rem;"></span></label>
+          <select id="fEnd" onchange="updateHint()"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Alliance</label>
+        <select id="fAlliance"><option value="">— Select Alliance —</option></select>
+      </div>
+      <div class="form-row">
+        <label>Member Name</label>
+        <div class="field-wrap">
+          <input type="text" id="fMember" placeholder="Member name…" maxlength="40" oninput="tickField('fMember','fMemberTick')">
+          <span class="field-tick" id="fMemberTick">✔</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>User ID</label>
+        <div class="field-wrap">
+          <input type="text" id="fUserID" placeholder="User ID…" maxlength="40" oninput="tickField('fUserID','fUserIDTick')">
+          <span class="field-tick" id="fUserIDTick">✔</span>
+        </div>
+      </div>
+      <div class="hint-text" id="fHint"></div>
+      <button class="btn-submit" onclick="addAppt()">⚔ Schedule Audience</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">📁 CSV</div>
+    <div class="csv-row">
+      <button class="btn-exp" onclick="exportCSV()">⬇ Export</button>
+      <label class="btn-imp">⬆ Import<input type="file" id="csvInput" accept=".csv" onchange="importCSV(event)"></label>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">📊 Stats</div>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+
+</aside>
+
+<!-- TIMETABLE -->
+<div class="tl-wrap" id="tlWrap">
+  <div class="tl-corner">UTC</div>
+  <div class="tl-time-axis" id="tlAxis"><div class="tl-time-axis-inner" id="tlAxisInner"></div></div>
+  <div class="tl-pos-col" id="tlPosCol"><div class="tl-pos-col-inner" id="tlPosInner"></div></div>
+  <div class="tl-scroll" id="tlScroll">
+    <div class="tl-canvas" id="tlCanvas"></div>
+  </div>
+</div>
+
+</div><!-- top-area -->
+
+<!-- APPLICATIONS PANEL — bottom drawer -->
+<div class="apps-panel" id="appsPanel">
+
+  <!-- Clickable header bar — toggles expand/collapse -->
+  <div class="apps-panel-header" onclick="toggleAppsPanel()">
+    <span class="apps-chevron">▲</span>
+    <div class="apps-panel-title">
+      ⚖ Applications
+      <span class="apps-badge" id="appsBadge">0</span>
+    </div>
+    <div class="apps-header-right">
+      <span class="poll-dot" id="pollDot"></span>
+      <div class="apps-filter-row" onclick="event.stopPropagation()">
+        <button class="filter-btn active" onclick="setFilter('pending',this)">Pending</button>
+        <button class="filter-btn" onclick="setFilter('accepted',this)">Accepted</button>
+        <button class="filter-btn" onclick="setFilter('rejected',this)">Rejected</button>
+        <button class="filter-btn" onclick="setFilter('all',this)">All</button>
+      </div>
+      <button class="btn-setup-toggle" id="setupToggleBtn" onclick="event.stopPropagation();toggleSetupPane()" title="Configure">⚙</button>
+    </div>
+  </div>
+
+  <!-- Expandable body -->
+  <div class="apps-panel-body">
+
+    <!-- Status bar (left column) -->
+    <div class="apps-status-bar">
+      <span id="pollStatus" style="line-height:1.4;">Not configured</span>
+    </div>
+
+    <!-- Cards list (horizontal scroll) -->
+    <div class="apps-list" id="appsList">
+      <div class="apps-empty">Click ⚙ to configure, then applications will appear here.</div>
+    </div>
+
+    <!-- Setup pane (right column, toggleable) -->
+    <div class="apps-setup-pane" id="appsSetupPane">
+      <div class="apps-setup-box">
+        <label>GitHub applications.json Raw URL</label>
+        <input type="text" id="cfgGithubUrl" placeholder="https://raw.githubusercontent.com/…/applications.json">
+        <label>Discord Webhook URL</label>
+        <input type="text" id="cfgWebhook" placeholder="https://discord.com/api/webhooks/…">
+        <label>Poll Interval (seconds)</label>
+        <input type="number" id="cfgInterval" placeholder="15" min="10" max="300" value="15">
+        <button class="btn-setup-save" onclick="saveSetup()">✔ Save & Start Polling</button>
+      </div>
+      <div style="padding:4px 0 0;font-family:'EB Garamond',serif;font-size:.78rem;color:var(--text-dim);font-style:italic;line-height:1.5;">
+        Settings saved in your browser. Webhook sends accept/reject to your private Discord admin channel.
+      </div>
+    </div>
+
+  </div><!-- apps-panel-body -->
+
+</div><!-- apps-panel -->
+</div><!-- body-area -->
+</div><!-- app -->
+
+<div class="ver-foot">RadSaw Appointment Planner · v1.2.1</div>
+<div class="toast" id="toast"></div>
+<div class="tt" id="tt"><div class="tt-inner" id="ttInner"></div></div>
+
+<!-- APPOINTMENT DETAIL MODAL -->
+<div class="appt-modal-overlay" id="apptModal" onclick="closeApptModal(event)">
+  <div class="appt-modal">
+    <button class="appt-modal-close" onclick="closeApptModalBtn()">✕</button>
+    <div class="appt-modal-title">⚔ Appointment Details</div>
+    <div class="appt-modal-pos" id="modalPos"></div>
+    <div class="appt-modal-divider"></div>
+    <div class="appt-modal-row"><span class="appt-modal-label">User ID</span><span class="appt-modal-val gold" id="modalUserID"></span></div>
+    <div class="appt-modal-row"><span class="appt-modal-label">Member Name</span><span class="appt-modal-val" id="modalMember"></span></div>
+    <div class="appt-modal-row"><span class="appt-modal-label">Alliance Tag</span><span class="appt-modal-val gold" id="modalTag"></span></div>
+    <div class="appt-modal-row"><span class="appt-modal-label">Alliance Name</span><span class="appt-modal-val" id="modalAlliance"></span></div>
+    <div class="appt-modal-row"><span class="appt-modal-label">Position</span><span class="appt-modal-val" id="modalPosition"></span></div>
+    <div class="appt-modal-row"><span class="appt-modal-label">Start Time</span><span class="appt-modal-val gold" id="modalStart"></span></div>
+    <div class="appt-modal-row"><span class="appt-modal-label">End Time</span><span class="appt-modal-val gold" id="modalEnd"></span></div>
+    <div class="appt-modal-row"><span class="appt-modal-label">Date</span><span class="appt-modal-val" id="modalDate"></span></div>
+  </div>
+</div>
+
+<!-- EDIT ALLIANCE MODAL -->
+<div class="edit-al-modal-overlay" id="editAlModal" onclick="closeEditAlModal(event)">
+  <div class="edit-al-modal">
+    <button class="appt-modal-close" onclick="closeEditAlModalBtn()">✕</button>
+    <div class="edit-al-modal-title">✎ Edit Alliance</div>
+    <input type="hidden" id="editAlOldName">
+    <div class="erow">
+      <label>Alliance Name</label>
+      <input type="text" id="editAlName" maxlength="40" placeholder="Alliance name…">
+    </div>
+    <div class="erow">
+      <label>Alliance Tag</label>
+      <input type="text" id="editAlTag" maxlength="6" placeholder="TAG" class="tag-inp" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <div class="edit-al-btns">
+      <button class="btn-submit" style="flex:1;margin-top:0;" onclick="saveEditAlliance()">✔ Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  CONSTANTS & CONFIG
+// ══════════════════════════════════════
+const PX_PER_MIN = 3;   // 3px per minute → 180px per hour
+const ROW_H      = 90;  // px, must match CSS --row-h
+const LBL_W      = 172; // px, must match CSS --lbl-w
+const AXIS_H     = 56;  // px — split date/time rows
+const DAYS_BACK  = 1;   // days before today to render
+const DAYS_FWD   = 7;   // days ahead to render
+const TICK_MINS  = 60;  // label every 60 min (can lower to 30 for denser axis)
+
+const POSITIONS = [
+  {name:'Chief Minister',          bonuses:[{label:'Construction Speed',val:'+10.00%'},{label:'Research Speed',val:'+10.00%'},{label:'Training Speed',val:'+10.00%'}]},
+  {name:'Minister of Justice',     bonuses:[{label:'Resource Production Speed',val:'+80.00%'},{label:'Special',val:"Appoint & remove in the King's place"}]},
+  {name:'Minister of the Interior',bonuses:[{label:'Healing Speed',val:'+100%'},{label:'Infirmary Capacity',val:'+5,000'}]},
+  {name:'Field Commander',         bonuses:[{label:"Squads' Lethality (appt.)",val:'+10.00%'}]},
+  {name:'Marshal',                 bonuses:[{label:"Squads' Attack (appt.)",val:'+5.00%'},{label:'Deployment Capacity',val:'+2,500'}]},
+  {name:'Noble Advisor',           bonuses:[{label:'Training Speed',val:'+50.00%'},{label:'Training Capacity',val:'+200'}]},
+];
+const POS_SVGS = [
+  `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><polygon points="20,2 38,12 38,28 20,38 2,28 2,12" fill="#1a5bbf" stroke="#c9962a" stroke-width="2.5"/><polygon points="20,6 22.5,12 29,12 23.5,16 25.5,22 20,18.5 14.5,22 16.5,16 11,12 17.5,12" fill="#f5d170"/><rect x="14" y="26" width="12" height="3.5" rx="1.5" fill="#d43a3a"/><polygon points="13,26 10,22 13,22" fill="#aa2a2a"/><polygon points="27,26 30,22 27,22" fill="#aa2a2a"/></svg>`,
+  `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><polygon points="20,2 38,12 38,28 20,38 2,28 2,12" fill="#1a5bbf" stroke="#c9962a" stroke-width="2.5"/><rect x="13" y="13" width="14" height="16" rx="2" fill="#f5f0dc" stroke="#c9962a" stroke-width="1"/><line x1="16" y1="18" x2="24" y2="18" stroke="#8a7a5a" stroke-width="1.2"/><line x1="16" y1="21" x2="24" y2="21" stroke="#8a7a5a" stroke-width="1.2"/><line x1="16" y1="24" x2="21" y2="24" stroke="#8a7a5a" stroke-width="1.2"/><path d="M23,10 Q28,5 27,14 L23,14 Z" fill="#d0a0f8" stroke="#8840c8" stroke-width=".8"/></svg>`,
+  `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><polygon points="20,2 38,12 38,28 20,38 2,28 2,12" fill="#1a5bbf" stroke="#c9962a" stroke-width="2.5"/><path d="M10,20 C9,14 12,10 15,11 C13,14 14,17 15,19 C13,21 13,24 15,26 C12,27 9,26 10,20Z" fill="#3ab040"/><path d="M30,20 C31,14 28,10 25,11 C27,14 26,17 25,19 C27,21 27,24 25,26 C28,27 31,26 30,20Z" fill="#3ab040"/><circle cx="20" cy="20" r="4.5" fill="none" stroke="#3ab040" stroke-width="2"/><circle cx="20" cy="20" r="1.5" fill="#3ab040"/></svg>`,
+  `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><polygon points="20,2 38,12 38,28 20,38 2,28 2,12" fill="#1a5bbf" stroke="#c9962a" stroke-width="2.5"/><line x1="12" y1="12" x2="28" y2="28" stroke="#d8e8f0" stroke-width="3" stroke-linecap="round"/><line x1="28" y1="12" x2="12" y2="28" stroke="#d8e8f0" stroke-width="3" stroke-linecap="round"/><line x1="9" y1="15" x2="15" y2="9" stroke="#c9962a" stroke-width="2.5" stroke-linecap="round"/><line x1="31" y1="15" x2="25" y2="9" stroke="#c9962a" stroke-width="2.5" stroke-linecap="round"/><circle cx="10" cy="11" r="2.2" fill="#c9962a"/><circle cx="30" cy="11" r="2.2" fill="#c9962a"/></svg>`,
+  `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><polygon points="20,2 38,12 38,28 20,38 2,28 2,12" fill="#1a5bbf" stroke="#c9962a" stroke-width="2.5"/><rect x="15" y="19" width="10" height="8" rx="2.5" fill="#d8c8b0" stroke="#a09070" stroke-width="1"/><rect x="15" y="15" width="10" height="5" rx="2" fill="#c8b090" stroke="#a09070" stroke-width="1"/><line x1="19" y1="15" x2="19" y2="20" stroke="#a09070" stroke-width=".9"/><line x1="22" y1="15" x2="22" y2="20" stroke="#a09070" stroke-width=".9"/><rect x="14" y="26" width="12" height="3" rx="1.2" fill="#c9962a"/></svg>`,
+  `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><polygon points="20,2 38,12 38,28 20,38 2,28 2,12" fill="#1a5bbf" stroke="#c9962a" stroke-width="2.5"/><path d="M13,27 Q13,13 20,13 Q27,13 27,27" fill="none" stroke="#c0d0e0" stroke-width="4" stroke-linecap="round"/><line x1="13" y1="27" x2="13" y2="31" stroke="#c0d0e0" stroke-width="4" stroke-linecap="round"/><line x1="27" y1="27" x2="27" y2="31" stroke="#c0d0e0" stroke-width="4" stroke-linecap="round"/><circle cx="15.5" cy="17" r="1.4" fill="#1a5bbf"/><circle cx="24.5" cy="17" r="1.4" fill="#1a5bbf"/><circle cx="14" cy="22" r="1.4" fill="#1a5bbf"/><circle cx="26" cy="22" r="1.4" fill="#1a5bbf"/></svg>`,
+];
+const AL_COLORS = ['#c0392b','#e67e22','#d4a017','#27ae60','#16a085','#2980b9','#8e44ad','#e91e8c','#00acc1','#7cb342'];
+
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+let alliances = [
+  {name:'CoffeeFriends',    tag:'COF', color:AL_COLORS[0]},
+  {name:'TheKingsDragons',  tag:'TKD', color:AL_COLORS[1]},
+  {name:'KOREA대한민국',     tag:'KOR', color:AL_COLORS[2]},
+  {name:'WolfsHonor',       tag:'2KO', color:AL_COLORS[3]},
+  {name:'ONICPH',           tag:'ONC', color:AL_COLORS[4]},
+  {name:'CoffeeTime',       tag:'CoF', color:AL_COLORS[5]},
+  {name:'Mavericks',        tag:'xXx', color:AL_COLORS[6]},
+  {name:'Fox',              tag:'Fox', color:AL_COLORS[7]},
+  {name:'TumbaDeNazarick',  tag:'YGG', color:AL_COLORS[8]},
+  {name:'KnightsOfHonor',   tag:'KOH', color:AL_COLORS[9]},
+  {name:'FreyasCouncil',    tag:'FWC', color:'#20a060'},
+  {name:"Capp'ccino",       tag:'CAP', color:'#b07030'},
+  {name:'AnimalEscape',     tag:'ZOO', color:'#6655cc'},
+  {name:'ResettingBanners', tag:'0K2', color:'#1a88cc'},
+  {name:'UnitedStateUSA',   tag:'JmD', color:'#cc4444'},
+  {name:'Alethra',          tag:'aTa', color:'#cc8800'},
+  {name:'ILLuminati',       tag:'ILL', color:'#aa3333'},
+  {name:'bilinmiyor',       tag:'bYY', color:'#228844'},
+  {name:'GUN',              tag:'GUN', color:'#888888'},
+];
+// appts[dateKey][posName] = [{startMin, endMin, alliance, member}]
+let appts = {};
+let posLocked = {};
+POSITIONS.forEach(p=>{ posLocked[p.name]=false; });
+
+// ══════════════════════════════════════
+//  TIME HELPERS
+// ══════════════════════════════════════
+function utcDateKey(d){ return d.toISOString().slice(0,10); }
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function minToHHMM(m){ return `${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`; }
+function secsToMMSS(s){ s=Math.max(0,s); return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; }
+function nowUTCMin(){ const n=new Date(); return n.getUTCHours()*60+n.getUTCMinutes(); }
+function nowUTCSec(){ const n=new Date(); return n.getUTCHours()*3600+n.getUTCMinutes()*60+n.getUTCSeconds(); }
+
+// Offset in minutes from the canvas origin (DAYS_BACK days before today 00:00 UTC)
+// Origin date: today - DAYS_BACK days
+let originDate; // set in init
+
+function dateMinOffset(dk){ // returns minutes from origin for 00:00 of dk
+  const [y,m,d]=dk.split('-').map(Number);
+  const dt=Date.UTC(y,m-1,d);
+  const orig=originDate.getTime();
+  return Math.round((dt-orig)/60000);
+}
+function nowCanvasX(){
+  const n=new Date();
+  const minsFromOrigin = Math.round((n.getTime()-originDate.getTime())/60000);
+  return minsFromOrigin*PX_PER_MIN;
+}
+
+// ══════════════════════════════════════
+//  DATA HELPERS
+// ══════════════════════════════════════
+function colorFor(name){ return (alliances.find(a=>a.name===name)||{color:'#888'}).color; }
+function tagFor(name){   return (alliances.find(a=>a.name===name)||{tag:'?'}).tag; }
+function darken(hex,a=60){ let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); r=Math.max(0,r-a);g=Math.max(0,g-a);b=Math.max(0,b-a); return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`; }
+function getDayPos(dk,pos){ if(!appts[dk])appts[dk]={}; if(!appts[dk][pos])appts[dk][pos]=[]; return appts[dk][pos]; }
+function toastMsg(m){ const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800); }
+
+function hasOverlap(dk,pos,s,e,excludeIdx=-1){
+  return getDayPos(dk,pos).some((a,i)=>i!==excludeIdx && s<a.endMin && e>a.startMin);
+}
+function nextAvailStart(pos){
+  // find the latest endMin for this position across today onwards
+  const tk=todayKey();
+  const list=getDayPos(tk,pos).slice().sort((a,b)=>a.startMin-b.startMin);
+  const n=new Date(); const nowM=n.getUTCHours()*60+n.getUTCMinutes()+1;
+  if(!list.length) return nowM;
+  return list[list.length-1].endMin;
+}
+
+function tickField(inputId, tickId){
+  const val=document.getElementById(inputId).value.trim();
+  const tick=document.getElementById(tickId);
+  tick.className='field-tick'+(val?' ok':'');
+}
+function tickAlField(inputId, tickId){
+  const val=document.getElementById(inputId).value.trim();
+  const tick=document.getElementById(tickId);
+  tick.className='al-field-tick'+(val?' ok':'');
+}
+
+// ══════════════════════════════════════
+//  APPOINTMENT DETAIL MODAL
+// ══════════════════════════════════════
+function openApptModal(appt, pos, dk){
+  document.getElementById('modalUserID').textContent = appt.userId || '—';
+  document.getElementById('modalMember').textContent = appt.member;
+  document.getElementById('modalTag').textContent = '['+tagFor(appt.alliance)+']';
+  document.getElementById('modalAlliance').textContent = appt.alliance;
+  document.getElementById('modalPosition').textContent = pos;
+  document.getElementById('modalPos').textContent = pos;
+  document.getElementById('modalStart').textContent = minToHHMM(appt.startMin)+' UTC';
+  document.getElementById('modalEnd').textContent = minToHHMM(appt.endMin)+' UTC';
+  document.getElementById('modalDate').textContent = dk;
+  document.getElementById('apptModal').classList.add('vis');
+}
+function closeApptModal(e){
+  if(e.target===document.getElementById('apptModal')) closeApptModalBtn();
+}
+function closeApptModalBtn(){
+  document.getElementById('apptModal').classList.remove('vis');
+}
+
+// ══════════════════════════════════════
+//  ALLIANCE CRUD
+// ══════════════════════════════════════
+function addAlliance(){
+  const name=document.getElementById('alName').value.trim();
+  const tag=document.getElementById('alTag').value.trim().toUpperCase();
+  if(!name) return toastMsg('Enter alliance name.');
+  if(!tag)  return toastMsg('Enter alliance tag.');
+  if(alliances.find(a=>a.name.toLowerCase()===name.toLowerCase())) return toastMsg('Alliance already exists.');
+  if(alliances.find(a=>a.tag===tag)) return toastMsg('Tag already in use.');
+  if(alliances.length>=10) return toastMsg('Max 10 alliances.');
+  alliances.push({name,tag,color:AL_COLORS[alliances.length%AL_COLORS.length]});
+  document.getElementById('alName').value=''; document.getElementById('alTag').value='';
+  document.getElementById('alNameTick').className='al-field-tick';
+  document.getElementById('alTagTick').className='al-field-tick';
+  renderAlliances(); renderAlDrop();
+  toastMsg(`⚜ [${tag}] ${name} joined.`);
+}
+function removeAlliance(name){
+  alliances=alliances.filter(a=>a.name!==name);
+  renderAlliances(); renderAlDrop(); renderCanvas();
+  toastMsg(`${name} disbanded.`);
+}
+function renderAlliances(){
+  const el=document.getElementById('alList');
+  if(!alliances.length){ el.innerHTML=`<div style="color:var(--text-dim);font-size:.78rem;padding:3px 0">No alliances.</div>`; return; }
+  el.innerHTML=alliances.map(a=>`<div class="al-chip"><span class="al-swatch" style="background:${a.color}"></span><span class="al-tag">[${a.tag}]</span><span style="font-size:.7rem">${a.name}</span><button class="edit-btn" onclick="openEditAlModal('${a.name.replace(/'/g,"\\'")}')">✎</button><button class="del" onclick="removeAlliance('${a.name.replace(/'/g,"\\'")}')">✕</button></div>`).join('');
+}
+function renderAlDrop(){
+  const sel=document.getElementById('fAlliance'); const cur=sel.value;
+  sel.innerHTML=`<option value="">— Select Alliance —</option>`+alliances.map(a=>`<option value="${a.name}">[${a.tag}] ${a.name}</option>`).join('');
+  if(cur) sel.value=cur;
+}
+
+// ══════════════════════════════════════
+//  EDIT ALLIANCE
+// ══════════════════════════════════════
+function openEditAlModal(name){
+  const al=alliances.find(a=>a.name===name); if(!al) return;
+  document.getElementById('editAlOldName').value=name;
+  document.getElementById('editAlName').value=al.name;
+  document.getElementById('editAlTag').value=al.tag;
+  document.getElementById('editAlModal').classList.add('vis');
+}
+function closeEditAlModal(e){ if(e.target===document.getElementById('editAlModal')) closeEditAlModalBtn(); }
+function closeEditAlModalBtn(){ document.getElementById('editAlModal').classList.remove('vis'); }
+function saveEditAlliance(){
+  const oldName=document.getElementById('editAlOldName').value;
+  const newName=document.getElementById('editAlName').value.trim();
+  const newTag=document.getElementById('editAlTag').value.trim().toUpperCase();
+  if(!newName) return toastMsg('Enter alliance name.');
+  if(!newTag)  return toastMsg('Enter alliance tag.');
+  // Check duplicates (excluding self)
+  if(alliances.find(a=>a.name.toLowerCase()===newName.toLowerCase()&&a.name!==oldName)) return toastMsg('Name already in use.');
+  if(alliances.find(a=>a.tag===newTag&&a.name!==oldName)) return toastMsg('Tag already in use.');
+  const al=alliances.find(a=>a.name===oldName); if(!al) return;
+  // Rename in all appointments
+  Object.values(appts).forEach(day=>Object.values(day).forEach(list=>list.forEach(a=>{ if(a.alliance===oldName) a.alliance=newName; })));
+  al.name=newName; al.tag=newTag;
+  renderAlliances(); renderAlDrop(); renderCanvas();
+  closeEditAlModalBtn();
+  toastMsg(`✔ [${newTag}] ${newName} updated.`);
+}
+
+// ══════════════════════════════════════
+//  LOCK PANEL
+// ══════════════════════════════════════
+function renderLocks(){
+  document.getElementById('lockList').innerHTML=POSITIONS.map(p=>`
+    <div class="lk-row">
+      <span class="lk-name">${p.name}</span>
+      <label class="lk-toggle">
+        <input type="checkbox" ${posLocked[p.name]?'checked':''} onchange="toggleLock('${p.name.replace(/'/g,"\\'")}',this.checked)">
+        <span class="trk"></span>
+        <span class="lk-lbl">${posLocked[p.name]?'Locked':'Open'}</span>
+      </label>
+    </div>`).join('');
+}
+function toggleLock(pos,val){
+  posLocked[pos]=val;
+  renderLocks(); renderPosCol(); renderCanvas();
+  if(document.getElementById('fPos').value===pos) onPosChange();
+  toastMsg(`${pos}: ${val?'🔒 Locked':'🔓 Open'}`);
+}
+
+// ══════════════════════════════════════
+//  FORM LOGIC
+// ══════════════════════════════════════
+function buildTimeOpts(fromM, toM){
+  let h=''; for(let m=fromM;m<=toM;m++) h+=`<option value="${m}">${minToHHMM(m)} UTC</option>`; return h;
+}
+function onPosChange(){
+  const pos=document.getElementById('fPos').value; if(!pos){ document.getElementById('fHint').textContent=''; return; }
+  const locked=posLocked[pos];
+  const next=Math.min(nextAvailStart(pos),1439);
+  const startSel=document.getElementById('fStart');
+  startSel.innerHTML=buildTimeOpts(0,1438); startSel.value=next;
+  onStartChange();
+  const endRow=document.getElementById('fEndRow');
+  if(locked){
+    endRow.style.opacity='1'; endRow.style.pointerEvents='auto';
+    document.getElementById('fEndLbl').textContent='(manual ≥30)';
+  } else {
+    endRow.style.opacity='.42'; endRow.style.pointerEvents='none';
+    document.getElementById('fEndLbl').textContent='(auto +30)';
+  }
+}
+function onStartChange(){
+  const pos=document.getElementById('fPos').value; if(!pos) return;
+  const s=parseInt(document.getElementById('fStart').value);
+  const locked=posLocked[pos];
+  const endSel=document.getElementById('fEnd');
+  const minEnd=Math.min(s+30,1440);
+  const maxEnd=locked?1440:Math.min(s+30,1440); // open: exactly 30; locked: up to midnight
+  endSel.innerHTML=buildTimeOpts(minEnd,maxEnd);
+  endSel.value=minEnd;
+  updateHint();
+}
+function updateHint(){
+  const pos=document.getElementById('fPos').value; if(!pos) return;
+  const s=parseInt(document.getElementById('fStart').value||0);
+  const locked=posLocked[pos];
+  const e=locked?parseInt(document.getElementById('fEnd').value||s+30):s+30;
+  const dk=todayKey();
+  const overlap=hasOverlap(dk,pos,s,e);
+  const hint=document.getElementById('fHint');
+  if(overlap){ hint.textContent=`⚠ Overlaps existing slot for ${pos}.`; hint.style.color='var(--crimson)'; }
+  else{ hint.textContent=`${minToHHMM(s)} → ${minToHHMM(Math.min(e,1440))} UTC · ${e-s} min`; hint.style.color='var(--text-dim)'; }
+}
+
+// ══════════════════════════════════════
+//  ADD APPOINTMENT
+// ══════════════════════════════════════
+function addAppt(){
+  const pos=document.getElementById('fPos').value;
+  const alFull=document.getElementById('fAlliance').value;
+  const member=document.getElementById('fMember').value.trim();
+  const userId=document.getElementById('fUserID').value.trim();
+  const s=parseInt(document.getElementById('fStart').value);
+  const locked=posLocked[pos];
+  const e=locked?parseInt(document.getElementById('fEnd').value):s+30;
+  if(!pos)    return toastMsg('Select a position.');
+  if(!alFull) return toastMsg('Select an alliance.');
+  if(!member) return toastMsg('Enter a member name.');
+  if(!userId) return toastMsg('Enter a User ID.');
+  if(e<=s)    return toastMsg('End must be after start.');
+  if(e-s<30)  return toastMsg('Minimum 30 minutes.');
+  if(!locked && e-s>30) return toastMsg('Open positions are max 30 min.');
+  const alName=alFull.includes('] ')?alFull.split('] ')[1]:alFull;
+  const dk=todayKey();
+  if(hasOverlap(dk,pos,s,e)) return toastMsg(`⚠ Overlaps existing slot.`);
+  getDayPos(dk,pos).push({startMin:s,endMin:e,alliance:alName,member,userId});
+  getDayPos(dk,pos).sort((a,b)=>a.startMin-b.startMin);
+  document.getElementById('fMember').value='';
+  document.getElementById('fUserID').value='';
+  document.getElementById('fMemberTick').className='field-tick';
+  document.getElementById('fUserIDTick').className='field-tick';
+  onPosChange();
+  renderCanvas(); updateStats();
+  toastMsg(`⚔ [${tagFor(alName)}]${member} → ${pos} @${minToHHMM(s)}`);
+}
+function removeAppt(dk,pos,idx){
+  getDayPos(dk,pos).splice(idx,1);
+  renderCanvas(); updateStats(); toastMsg('Removed.');
+}
+
+// ══════════════════════════════════════
+//  CSV
+// ══════════════════════════════════════
+function exportCSV(){
+  const rows=['date,start_utc,end_utc,start_min,end_min,position,alliance,tag,member,user_id'];
+  Object.entries(appts).forEach(([dk,positions])=>{
+    Object.entries(positions).forEach(([pos,list])=>{
+      list.forEach(a=>{ rows.push(`"${dk}","${minToHHMM(a.startMin)}","${minToHHMM(a.endMin)}","${a.startMin}","${a.endMin}","${pos}","${a.alliance}","${tagFor(a.alliance)}","${a.member}","${a.userId||''}"`); });
+    });
+  });
+  const b=new Blob([rows.join('\n')],{type:'text/csv'});
+  const el=document.createElement('a');el.href=URL.createObjectURL(b);el.download='radsaw_appointments.csv';el.click();
+  toastMsg('📁 Exported.');
+}
+function importCSV(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const lines=ev.target.result.trim().split('\n'); let imp=0,skip=0;
+    lines.slice(1).forEach(line=>{
+      if(!line.trim()){skip++;return;}
+      const cols=[]; let cur='',inQ=false;
+      for(const c of line){if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){cols.push(cur.trim());cur='';}else{cur+=c;}}
+      cols.push(cur.trim());
+      if(cols.length<9){skip++;return;}
+      const [date,,,sMin,eMin,pos,al,tag,member,userId]=cols;
+      if(!date||!pos||!al||!member){skip++;return;}
+      if(!alliances.find(a=>a.name===al)) alliances.push({name:al,tag:tag||'?',color:AL_COLORS[alliances.length%AL_COLORS.length]});
+      getDayPos(date,pos).push({startMin:parseInt(sMin),endMin:parseInt(eMin),alliance:al,member,userId:userId||''});
+      imp++;
+    });
+    Object.values(appts).forEach(day=>Object.values(day).forEach(l=>l.sort((a,b)=>a.startMin-b.startMin)));
+    renderAlliances(); renderAlDrop(); renderCanvas(); updateStats();
+    toastMsg(`✅ ${imp} imported${skip?`, ${skip} skipped`:''}.`);
+    e.target.value='';
+  };
+  r.readAsText(f);
+}
+
+// ══════════════════════════════════════
+//  TIMETABLE LAYOUT — CONSTANTS
+// ══════════════════════════════════════
+const TOTAL_DAYS  = DAYS_BACK + 1 + DAYS_FWD;
+const TOTAL_MINS  = TOTAL_DAYS * 1440;
+const CANVAS_W    = TOTAL_MINS * PX_PER_MIN;
+const CANVAS_H    = POSITIONS.length * ROW_H;
+
+// ══════════════════════════════════════
+//  BUILD STATIC STRUCTURE (once)
+// ══════════════════════════════════════
+function buildTimeAxis(){
+  const inner=document.getElementById('tlAxisInner');
+  inner.style.width=CANVAS_W+'px';
+  let html='';
+  for(let m=0;m<TOTAL_MINS;m+=TICK_MINS){
+    const x=m*PX_PER_MIN;
+    const isMid=(m%1440===0);
+    const hh=Math.floor((m%1440)/60), mn=(m%1440)%60;
+    const dayIdx=Math.floor(m/1440)-DAYS_BACK;
+    // Always show date for every tick
+    const tickDt=new Date(originDate.getTime()+m*60000);
+    const tickDateStr=tickDt.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
+    html+=`<div class="tl-tick${isMid?' midnight':''}" style="left:${x}px;width:${TICK_MINS*PX_PER_MIN}px;">
+      <span class="tick-date">${tickDateStr}</span>
+      <span class="tick-hm">${hh.toString().padStart(2,'0')}:${mn.toString().padStart(2,'0')}</span>
+    </div>`;
+  }
+  inner.innerHTML=html;
+}
+
+function buildPosCol(){
+  renderPosCol();
+}
+function renderPosCol(){
+  const inner=document.getElementById('tlPosInner');
+  inner.style.height=CANVAS_H+'px';
+  inner.innerHTML=POSITIONS.map((p,i)=>{
+    const enc='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(POS_SVGS[i]);
+    const locked=posLocked[p.name];
+    return `<div class="tl-pos-lbl" style="height:${ROW_H}px" onmouseenter="showTT(event,${i})" onmouseleave="hideTT()">
+      <img class="pos-icon" src="${enc}" alt="${p.name}">
+      <span class="pos-name">${p.name}</span>
+      <span class="pos-mode ${locked?'locked':'open'}">${locked?'🔒 Locked':'🔓 Open'}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+//  CANVAS RENDER
+// ══════════════════════════════════════
+function renderCanvas(){
+  const canvas=document.getElementById('tlCanvas');
+  canvas.style.width=CANVAS_W+'px';
+  canvas.style.height=CANVAS_H+'px';
+  let html='';
+
+  // Row backgrounds
+  POSITIONS.forEach((p,ri)=>{
+    html+=`<div class="tl-row-bg ${ri%2===0?'even':'odd'}" style="top:${ri*ROW_H}px;"></div>`;
+  });
+
+  // Vertical grid lines (every hour, day separators)
+  for(let m=0;m<TOTAL_MINS;m+=60){
+    const x=m*PX_PER_MIN;
+    const isMid=(m%1440===0);
+    html+=`<div class="tl-vline${isMid?' midnight':''}" style="left:${x}px;"></div>`;
+  }
+
+  // Day labels (at the top of each day band)
+  for(let d=0;d<TOTAL_DAYS;d++){
+    const x=d*1440*PX_PER_MIN + 4;
+    const dt=new Date(originDate.getTime()+d*1440*60000);
+    const label=dt.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric',timeZone:'UTC'});
+    const isToday=utcDateKey(dt)===todayKey();
+    html+=`<div class="day-label" style="left:${x}px;${isToday?'color:var(--gold-bright);border-color:rgba(245,209,112,.4);':''}">${label}${isToday?' ★':''}</div>`;
+  }
+
+  // Appointments
+  const nowSec=nowUTCSec();
+  for(let d=0;d<TOTAL_DAYS;d++){
+    const dt=new Date(originDate.getTime()+d*1440*60000);
+    const dk=utcDateKey(dt);
+    const dayOffsetPx=d*1440*PX_PER_MIN;
+    POSITIONS.forEach((p,ri)=>{
+      getDayPos(dk,p.name).forEach((a,idx)=>{
+        const x=dayOffsetPx+a.startMin*PX_PER_MIN;
+        const w=(a.endMin-a.startMin)*PX_PER_MIN;
+        const top=ri*ROW_H+2;
+        const h=ROW_H-4;
+        const col=colorFor(a.alliance);
+        const bg=darken(col,62);
+        const tag=tagFor(a.alliance);
+        const apptStartSec=(dk===todayKey()?a.startMin*60:Infinity);
+        const apptEndSec=(dk===todayKey()?a.endMin*60:Infinity);
+        const isActive=dk===todayKey()&&nowSec>=apptStartSec&&nowSec<apptEndSec;
+        const rem=isActive?apptEndSec-nowSec:0;
+        const cdHtml=isActive?`<span class="appt-cd" data-endsec="${apptEndSec}">${secsToMMSS(rem)}</span>`:'';
+        const safeDk=dk.replace(/'/g,"\\'"), safePos=p.name.replace(/'/g,"\\'");
+        // Encode appt data for modal as JSON in data attribute
+        const apptJson=encodeURIComponent(JSON.stringify({startMin:a.startMin,endMin:a.endMin,alliance:a.alliance,member:a.member,userId:a.userId||''}));
+        html+=`<div class="appt-blk${isActive?' active-now':''}" style="left:${x}px;top:${top}px;width:${w}px;height:${h}px;background:${bg}CC;border-color:${col};color:#fff;" title="[${tag}]${a.member} · ${minToHHMM(a.startMin)}–${minToHHMM(a.endMin)}" onclick="handleApptClick(event,this)" data-appt="${apptJson}" data-dk="${dk}" data-pos="${p.name}">
+          <span class="appt-tagname"><span class="tag">[${tag}]</span>${a.member}</span>
+          ${cdHtml}
+          <button class="rm" onclick="event.stopPropagation();removeAppt('${safeDk}','${safePos}',${idx})">✕</button>
+        </div>`;
+      });
+    });
+  }
+
+  // Blind overlay (past, today only)
+  const nowPx=nowCanvasX();
+  html+=`<div class="blind-layer" style="left:0;width:${nowPx}px;"></div>`;
+  html+=`<div class="now-edge" style="left:${nowPx}px;"></div>`;
+
+  canvas.innerHTML=html;
+}
+
+// ══════════════════════════════════════
+//  APPT BLOCK CLICK HANDLER
+// ══════════════════════════════════════
+function handleApptClick(e, el){
+  // Don't open if clicking remove button
+  if(e.target.classList.contains('rm')) return;
+  const appt=JSON.parse(decodeURIComponent(el.dataset.appt));
+  const dk=el.dataset.dk;
+  const pos=el.dataset.pos;
+  openApptModal(appt, pos, dk);
+}
+
+// ══════════════════════════════════════
+//  LIVE UPDATES
+// ══════════════════════════════════════
+function updateLive(){
+  // Update countdown timers
+  document.querySelectorAll('.appt-cd').forEach(el=>{
+    const rem=Math.max(0,parseInt(el.dataset.endsec)-nowUTCSec());
+    el.textContent=secsToMMSS(rem);
+  });
+
+  // Update blind + now-edge position
+  const nowPx=nowCanvasX();
+  const blind=document.querySelector('.blind-layer');
+  const edge=document.querySelector('.now-edge');
+  if(blind) blind.style.width=nowPx+'px';
+  if(edge)  edge.style.left=nowPx+'px';
+
+  // Every minute: full re-render (active state may change)
+  if(nowUTCSec()%60===0){ renderCanvas(); updateStats(); }
+}
+
+// ══════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════
+function updateStats(){
+  const dk=todayKey(); let total=0; const byA={};
+  Object.values(appts[dk]||{}).forEach(list=>list.forEach(a=>{ total++; byA[a.alliance]=(byA[a.alliance]||0)+1; }));
+  const top=Object.entries(byA).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('statsBar').innerHTML=`<div class="stat-chip">Today: <strong>${total}</strong></div>${top?`<div class="stat-chip">Top: <strong>[${tagFor(top[0])}]</strong></div>`:''}`;
+}
+
+// ══════════════════════════════════════
+//  SYNC SCROLL (axis + pos col follow scroll)
+// ══════════════════════════════════════
+function syncScroll(){
+  const sc=document.getElementById('tlScroll');
+  const axis=document.getElementById('tlAxis');
+  const posCol=document.getElementById('tlPosCol');
+  sc.addEventListener('scroll',()=>{
+    axis.scrollLeft=sc.scrollLeft;
+    posCol.scrollTop=sc.scrollTop;
+  });
+}
+
+// ══════════════════════════════════════
+//  TOOLTIP
+// ══════════════════════════════════════
+const tt=document.getElementById('tt'), ttIn=document.getElementById('ttInner');
+let ttTO=null;
+function showTT(e,idx){
+  clearTimeout(ttTO);
+  const p=POSITIONS[idx];
+  ttIn.innerHTML=`<div class="tt-title">${p.name}</div>${p.bonuses.map(b=>`<div class="tt-stat"><span><span class="sv">${b.val}</span> ${b.label}</span></div>`).join('')}`;
+  posTT(e); tt.classList.add('vis');
+  document.addEventListener('mousemove',moveTT);
+}
+function hideTT(){ ttTO=setTimeout(()=>{ tt.classList.remove('vis'); document.removeEventListener('mousemove',moveTT); },80); }
+function moveTT(e){ posTT(e); }
+function posTT(e){
+  const tw=240,th=160,pad=12;
+  let x=e.clientX-tw/2, y=e.clientY+pad+10;
+  if(y+th>window.innerHeight-10) y=e.clientY-th-pad;
+  x=Math.max(8,Math.min(x,window.innerWidth-tw-8));
+  tt.style.left=x+'px'; tt.style.top=y+'px';
+}
+
+// ══════════════════════════════════════
+//  UTC CLOCK
+// ══════════════════════════════════════
+function tickClock(){
+  const n=new Date();
+  document.getElementById('clkTime').textContent=`${n.getUTCHours().toString().padStart(2,'0')}:${n.getUTCMinutes().toString().padStart(2,'0')}:${n.getUTCSeconds().toString().padStart(2,'0')}`;
+  document.getElementById('clkDate').textContent=n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+  updateLive();
+}
+
+// ══════════════════════════════════════
+//  APPLICATIONS PANEL
+// ══════════════════════════════════════
+
+let appsData = [];          // all fetched apps
+let appsFilter = 'pending'; // current filter
+let pollTimer = null;
+let pollCfg = { url: '', webhook: '', interval: 15 };
+
+// --- Confirm dialog promise ---
+let confirmResolveFn = null;
+function showConfirm(title, body, okLabel='✔ Confirm', okStyle='btn-accept'){
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').textContent = body;
+  const okBtn = document.getElementById('confirmOkBtn');
+  okBtn.className = okStyle;
+  okBtn.textContent = okLabel;
+  document.getElementById('confirmOverlay').classList.add('vis');
+  return new Promise(res => { confirmResolveFn = res; });
+}
+function confirmResolve(val){
+  document.getElementById('confirmOverlay').classList.remove('vis');
+  if(confirmResolveFn){ confirmResolveFn(val); confirmResolveFn=null; }
+}
+
+// --- Setup ---
+function loadSetupFromStorage(){
+  try{
+    const s = localStorage.getItem('radsaw_admin_cfg');
+    if(s){ pollCfg = {...pollCfg, ...JSON.parse(s)}; }
+  }catch(e){}
+  document.getElementById('cfgGithubUrl').value = pollCfg.url || '';
+  document.getElementById('cfgWebhook').value   = pollCfg.webhook || '';
+  document.getElementById('cfgInterval').value  = pollCfg.interval || 15;
+}
+
+function saveSetup(){
+  pollCfg.url      = document.getElementById('cfgGithubUrl').value.trim();
+  pollCfg.webhook  = document.getElementById('cfgWebhook').value.trim();
+  pollCfg.interval = Math.max(10, parseInt(document.getElementById('cfgInterval').value)||15);
+  try{ localStorage.setItem('radsaw_admin_cfg', JSON.stringify(pollCfg)); }catch(e){}
+  
+  startPolling();
+  toastMsg('⚙ Setup saved. Polling started.');
+}
+
+// --- Panel toggle ---
+function toggleAppsPanel(){
+  const panel = document.getElementById('appsPanel');
+  panel.classList.toggle('expanded');
+}
+
+function toggleSetupPane(){
+  const pane = document.getElementById('appsSetupPane');
+  const btn  = document.getElementById('setupToggleBtn');
+  const panel = document.getElementById('appsPanel');
+  const isVis = pane.classList.toggle('vis');
+  btn.classList.toggle('active', isVis);
+  // Auto-expand panel if not already
+  if(isVis && !panel.classList.contains('expanded')){
+    panel.classList.add('expanded');
+  }
+}
+
+// legacy stub — no-op
+function showAppsTab(){}
+
+// --- Filter ---
+function setFilter(f, el){
+  appsFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderApps();
+}
+
+// --- Polling ---
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  if(!pollCfg.url){ setPollStatus('err','No URL configured'); return; }
+  fetchApps();
+  pollTimer = setInterval(fetchApps, pollCfg.interval * 1000);
+}
+
+async function fetchApps(){
+  if(!pollCfg.url) return;
+  try{
+    // Cache-bust so GitHub CDN doesn't serve stale
+    const res = await fetch(pollCfg.url + '?t=' + Date.now());
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    appsData = Array.isArray(data) ? data : [];
+    const pending = appsData.filter(a=>a.status==='pending').length;
+    setPollStatus('live', `${appsData.length} total · last polled ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'})} UTC`);
+    const badge = document.getElementById('appsBadge');
+    badge.textContent = pending;
+    badge.classList.toggle('vis', pending > 0);
+    const mBadge = document.getElementById('mnavBadge');
+    if(mBadge){ mBadge.textContent = pending; mBadge.classList.toggle('vis', pending > 0); }
+    // Auto-expand panel on PC when there are pending apps
+    if(pending > 0 && window.innerWidth > 768){
+      document.getElementById('appsPanel').classList.add('expanded');
+    }
+    renderApps();
+  } catch(e){
+    setPollStatus('err', 'Fetch error: ' + e.message);
+  }
+}
+
+function setPollStatus(state, msg){
+  const dot = document.getElementById('pollDot');
+  dot.className = 'poll-dot' + (state==='live'?' live':state==='err'?' err':'');
+  document.getElementById('pollStatus').textContent = msg;
+}
+
+// --- Render ---
+function renderApps(){
+  const list = document.getElementById('appsList');
+  let filtered = appsData;
+  if(appsFilter !== 'all') filtered = appsData.filter(a=>a.status===appsFilter);
+
+  if(!filtered.length){
+    const msg = appsData.length ? 'No '+appsFilter+' applications.' : 'No applications loaded yet.';
+    list.innerHTML = `<div class="apps-empty">${msg}</div>`;
+    return;
+  }
+
+  // Sort: pending first, then submitted_at desc
+  filtered = [...filtered].sort((a,b)=>{
+    if(a.status==='pending' && b.status!=='pending') return -1;
+    if(b.status==='pending' && a.status!=='pending') return 1;
+    return (b.submitted_at||'').localeCompare(a.submitted_at||'');
+  });
+
+  list.innerHTML = filtered.map(app => {
+    const isPending = app.status === 'pending';
+    const pillClass = `pill-${app.status||'pending'}`;
+    const statusLabel = (app.status||'pending').toUpperCase();
+    const posClean = (app.position_applied_to||'').replace(/\p{Emoji}/gu,'').trim();
+    const safeName = (app.Username||'').replace(/'/g,"\\'");
+    const safePos  = posClean.replace(/'/g,"\\'");
+    return `
+    <div class="app-card status-${app.status||'pending'}" id="card-${app._id}">
+      <div class="app-card-head">
+        <span class="app-pos">${posClean}</span>
+        <span class="app-status-pill ${pillClass}">${statusLabel}</span>
+      </div>
+      <div class="app-card-body">
+        <div class="app-row"><span class="app-lbl">Player</span><span class="app-val" title="${app.Username||''}">${app.Username||'—'}</span></div>
+        <div class="app-row"><span class="app-lbl">Alliance</span><span class="app-val gold">[${app.alliance_tag||'?'}] ${app.alliance_name||'—'}</span></div>
+        <div class="app-row"><span class="app-lbl">Date</span><span class="app-val">${app.date_of_position||'—'}</span></div>
+        <div class="app-row"><span class="app-lbl">Slot</span><span class="app-val gold">${app.picked_time_slot||'—'}</span></div>
+        ${app.actioned_at?`<div class="app-row"><span class="app-lbl">Actioned</span><span class="app-val" style="font-size:.72rem;color:var(--text-dim)">${app.actioned_at}</span></div>`:''}
+      </div>
+      ${isPending ? `
+      <div class="app-actions">
+        <button class="btn-accept" onclick="actionApp('accept','${app._id}','${safePos}','${safeName}')">&#10004; Accept</button>
+        <button class="btn-place" onclick="placeOnTimeline('${app._id}')">&#128204; Place</button>
+        <button class="btn-reject" onclick="actionApp('reject','${app._id}','${safePos}','${safeName}')">&#10005; Reject</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// --- Accept / Reject ---
+async function actionApp(action, appId, pos, player){
+  if(!pollCfg.webhook){
+    toastMsg('⚠ No webhook URL configured in Setup.');
+    return;
+  }
+  const label  = action === 'accept' ? 'Accept' : 'Reject';
+  const emoji  = action === 'accept' ? '✔' : '✕';
+  const confirmed = await showConfirm(
+    `${emoji} ${label} Application`,
+    `${label} ${player}'s application for ${pos}?`,
+    `${emoji} ${label}`,
+    action === 'accept' ? 'btn-accept' : 'btn-reject'
+  );
+  if(!confirmed) return;
+
+  const msg = `ACTION:${action} APP_ID:${appId}`;
+  try{
+    const res = await fetch(pollCfg.webhook, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ content: msg })
+    });
+    if(res.ok || res.status===204){
+      toastMsg(`${emoji} Sent ${action} for ${player} → bot will process shortly.`);
+      // Optimistically update local display
+      const app = appsData.find(a=>a._id===appId);
+      if(app){ app.status = action==='accept'?'accepted':'rejected'; app.actioned_at='Pending bot confirmation…'; }
+      renderApps();
+      // Re-fetch after 3s to confirm
+      setTimeout(fetchApps, 3000);
+    } else {
+      toastMsg(`⚠ Webhook error: ${res.status}`);
+    }
+  }catch(e){
+    toastMsg('⚠ Failed to send: ' + e.message);
+  }
+}
+
+// --- Place on timeline ---
+function placeOnTimeline(appId){
+  const app = appsData.find(a=>a._id===appId);
+  if(!app){ toastMsg('App not found.'); return; }
+
+  // Parse time slot: "14:00 - 14:30 UTC"
+  const slotMatch = (app.picked_time_slot||'').match(/(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
+  if(!slotMatch){ toastMsg('Could not parse time slot.'); return; }
+  const startMin = parseInt(slotMatch[1])*60 + parseInt(slotMatch[2]);
+  const endMin   = parseInt(slotMatch[3])*60 + parseInt(slotMatch[4]);
+
+  // Parse date: "Friday 24 April" → YYYY-MM-DD
+  const dateMatch = (app.date_of_position||'').match(/(\d{1,2})\s+(\w+)/);
+  if(!dateMatch){ toastMsg('Could not parse date.'); return; }
+  const months = {January:0,February:1,March:2,April:3,May:4,June:5,July:6,August:7,September:8,October:9,November:10,December:11};
+  const now = new Date();
+  const month = months[dateMatch[2]];
+  if(month===undefined){ toastMsg('Unknown month: '+dateMatch[2]); return; }
+  let year = now.getUTCFullYear();
+  const day = parseInt(dateMatch[1]);
+  // Roll year if month is before current (e.g. applied in Dec for Jan)
+  if(month < now.getUTCMonth()-1) year++;
+  const dk = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+
+  // Strip emoji from position name to match planner's POSITIONS
+  const posClean = (app.position_applied_to||'').replace(/[\u{1F300}-\u{1FFFF}\u2600-\u27BF\uFE00-\uFE0F\u200D]/gu,'').trim();
+  const matchedPos = POSITIONS.find(p=>p.name.toLowerCase()===posClean.toLowerCase());
+  if(!matchedPos){ toastMsg('Position not matched: '+posClean); return; }
+
+  // Ensure alliance exists
+  const tag = app.alliance_tag || '?';
+  const alName = app.alliance_name || tag;
+  if(!alliances.find(a=>a.name===alName)){
+    alliances.push({name:alName, tag, color:AL_COLORS[alliances.length%AL_COLORS.length]});
+    renderAlliances(); renderAlDrop();
+  }
+
+  if(hasOverlap(dk, matchedPos.name, startMin, endMin)){
+    toastMsg(`⚠ Overlap detected for ${matchedPos.name} at ${app.picked_time_slot}`);
+    return;
+  }
+
+  getDayPos(dk, matchedPos.name).push({
+    startMin, endMin,
+    alliance: alName,
+    member: app.Username || '?',
+    userId: app.UserID || ''
+  });
+  getDayPos(dk, matchedPos.name).sort((a,b)=>a.startMin-b.startMin);
+  renderCanvas(); updateStats();
+  toastMsg(`📌 Placed ${app.Username} → ${matchedPos.name} @ ${app.picked_time_slot}`);
+
+  // Scroll timeline to that date/time
+  const minsFromOrigin = (new Date(Date.UTC(year,month,day)).getTime() - originDate.getTime())/60000 + startMin;
+  const sc = document.getElementById('tlScroll');
+  sc.scrollLeft = Math.max(0, minsFromOrigin*PX_PER_MIN - 120);
+}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+function init(){
+  // Set origin date
+  const now=new Date();
+  originDate=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-DAYS_BACK));
+
+  // Set CSS variables for JS-driven values
+  document.documentElement.style.setProperty('--row-h',ROW_H+'px');
+  document.documentElement.style.setProperty('--lbl-w',LBL_W+'px');
+
+  renderAlliances(); renderAlDrop(); renderLocks(); buildPosCol();
+  buildTimeAxis(); renderCanvas(); updateStats();
+  syncScroll();
+
+  // Scroll to ~1 hour before now
+  setTimeout(()=>{
+    const sc=document.getElementById('tlScroll');
+    const nowPx=nowCanvasX();
+    sc.scrollLeft=Math.max(0,nowPx-180*PX_PER_MIN); // show 3h before now
+  },80);
+
+  tickClock();
+  setInterval(tickClock,1000);
+
+  // Applications panel
+  loadSetupFromStorage();
+  if(pollCfg.url) startPolling();
+
+  // Mobile: show timeline by default
+  if(window.innerWidth <= 768) mobileNav('timeline', document.querySelector('.mnav-tab'));
+}
+
+// ══════════════════════════════════════
+//  MOBILE NAV
+// ══════════════════════════════════════
+function mobileNav(tab, el){
+  if(window.innerWidth > 768) return;
+
+  // Hide all panels
+  document.querySelector('aside').classList.remove('mob-active');
+  document.querySelector('.tl-wrap').classList.remove('mob-active');
+  document.querySelector('.apps-panel').classList.remove('mob-active');
+
+  // Show selected
+  if(tab === 'sidebar')  document.querySelector('aside').classList.add('mob-active');
+  if(tab === 'timeline') document.querySelector('.tl-wrap').classList.add('mob-active');
+  if(tab === 'apps'){
+    const panel = document.querySelector('.apps-panel');
+    panel.classList.add('mob-active');
+    panel.classList.add('expanded');
+    renderApps();
+  }
+
+  // Update nav active state
+  document.querySelectorAll('.mnav-tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+
+  // Re-render canvas when switching to timeline
+  if(tab === 'timeline') setTimeout(()=>{ renderCanvas(); }, 50);
+}
+init();
+</script>
+<!-- CONFIRM MODAL -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirmTitle">Confirm Action</div>
+    <div class="confirm-body" id="confirmBody"></div>
+    <div class="confirm-btns">
+      <button class="btn-reject" style="flex:1" onclick="confirmResolve(false)">✕ Cancel</button>
+      <button class="btn-accept" style="flex:1" id="confirmOkBtn" onclick="confirmResolve(true)">✔ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-tabs">
+    <button class="mnav-tab active" onclick="mobileNav('timeline',this)">
+      <span class="mnav-icon">⚔</span>
+      <span>Timeline</span>
+    </button>
+    <button class="mnav-tab" onclick="mobileNav('sidebar',this)">
+      <span class="mnav-icon">📜</span>
+      <span>Schedule</span>
+    </button>
+    <button class="mnav-tab" onclick="mobileNav('apps',this)">
+      <span class="mnav-icon">⚖</span>
+      <span>Applications</span>
+      <span class="mnav-badge" id="mnavBadge"></span>
+    </button>
+  </div>
+</nav>
+
+</body>
+</html>
