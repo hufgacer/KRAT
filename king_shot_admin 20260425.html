@@ -1516,6 +1516,10 @@ function loadSetupFromStorage(){
     const s = localStorage.getItem('radsaw_admin_cfg');
     if(s){ pollCfg = {...pollCfg, ...JSON.parse(s)}; }
   }catch(e){}
+  // The applications.json location is fixed to this repo, not a secret,
+  // and shouldn't depend on an admin successfully clicking Save first —
+  // so it's hardcoded here rather than only being set inside saveSetup().
+  pollCfg.url = DEFAULT_GITHUB_URL;
   document.getElementById('cfgGithubUrl').value = pollCfg.url || '';
   document.getElementById('cfgWebhook').value   = pollCfg.webhook || '';
   document.getElementById('cfgInterval').value  = pollCfg.interval || 15;
@@ -1797,7 +1801,7 @@ function init(){
   // Applications panel
   loadSetupFromStorage();
   loadPlacedIds();
-  if(pollCfg.url) startPolling();
+  startPolling(); // URL is hardcoded above, no longer gated on a prior manual Save
 
   // Mobile: show timeline by default
   if(window.innerWidth <= 768) mobileNav('timeline', document.querySelector('.mnav-tab'));
