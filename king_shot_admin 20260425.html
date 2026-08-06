@@ -1465,6 +1465,30 @@ function tickClock(){
 //  APPLICATIONS PANEL
 // ══════════════════════════════════════
 
+// The bot's three JSON files all live at the repo root next to each other
+// (see RKAT.py: APPLICATIONS_FILE / ACCEPTED_FILE / REJECTED_FILE). This
+// was previously referenced as an undefined `DEFAULT_GITHUB_URL` — that
+// threw a ReferenceError the instant Setup was saved, so polling never
+// actually started. Defining it here, plus deriving the accepted/rejected
+// URLs from it, so accept/reject actions don't just vanish from view once
+// the bot moves an entry out of applications.json.
+const DEFAULT_GITHUB_URL = "https://raw.githubusercontent.com/hufgacer/KRAT/main/applications.json";
+const ACCEPTED_GITHUB_URL = DEFAULT_GITHUB_URL.replace("applications.json", "accepted.json");
+const REJECTED_GITHUB_URL = DEFAULT_GITHUB_URL.replace("applications.json", "rejected.json");
+
+// IDs of accepted applications already placed on the timeline, so a page
+// refresh or repeat poll doesn't drop a duplicate block for the same app.
+let placedAppIds = new Set();
+function loadPlacedIds(){
+  try{
+    const s = localStorage.getItem('radsaw_placed_ids');
+    if(s) placedAppIds = new Set(JSON.parse(s));
+  }catch(e){}
+}
+function savePlacedIds(){
+  try{ localStorage.setItem('radsaw_placed_ids', JSON.stringify([...placedAppIds])); }catch(e){}
+}
+
 let appsData = [];          // all fetched apps
 let appsFilter = 'pending'; // current filter
 let pollTimer = null;
@@ -1537,19 +1561,40 @@ function startPolling(){
 async function fetchApps(){
   if(!pollCfg.url) return;
   try{
-    // Cache-bust so GitHub CDN doesn't serve stale
-    const res = await fetch(pollCfg.url + '?t=' + Date.now());
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    appsData = Array.isArray(data) ? data : [];
-    const pending = appsData.filter(a=>a.status==='pending').length;
+    // Cache-bust so GitHub CDN doesn't serve stale content, and pull all
+    // three files — an accepted/rejected entry is REMOVED from
+    // applications.json by the bot, not just flagged, so polling only that
+    // one file makes it vanish from the panel the moment it's actioned.
+    const bust = '?t=' + Date.now();
+    const [pendingRes, acceptedRes, rejectedRes] = await Promise.allSettled([
+      fetch(pollCfg.url + bust),
+      fetch(ACCEPTED_GITHUB_URL + bust),
+      fetch(REJECTED_GITHUB_URL + bust),
+    ]);
+
+    async function toList(settled){
+      if(settled.status !== 'fulfilled' || !settled.value.ok) return [];
+      try{ const d = await settled.value.json(); return Array.isArray(d) ? d : []; }
+      catch(e){ return []; }
+    }
+
+    const [pending, accepted, rejected] = await Promise.all([
+      toList(pendingRes), toList(acceptedRes), toList(rejectedRes)
+    ]);
+
+    if(pendingRes.status !== 'fulfilled' || !pendingRes.value.ok){
+      throw new Error('applications.json fetch failed');
+    }
+
+    appsData = [...pending, ...accepted, ...rejected];
+    const pendingCount = appsData.filter(a=>a.status==='pending').length;
     setPollStatus('live', `${appsData.length} total · last polled ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'})} UTC`);
     const badge = document.getElementById('appsBadge');
-    badge.textContent = pending;
-    badge.classList.toggle('vis', pending > 0);
+    badge.textContent = pendingCount;
+    badge.classList.toggle('vis', pendingCount > 0);
     const mBadge = document.getElementById('mnavBadge');
-    mBadge.textContent = pending;
-    mBadge.classList.toggle('vis', pending > 0);
+    mBadge.textContent = pendingCount;
+    mBadge.classList.toggle('vis', pendingCount > 0);
     renderApps();
   } catch(e){
     setPollStatus('err', 'Fetch error: ' + e.message);
@@ -1582,9 +1627,10 @@ function renderApps(){
 
   list.innerHTML = filtered.map(app => {
     const isPending = app.status === 'pending';
+    const isAcceptedUnplaced = app.status === 'accepted' && !placedAppIds.has(app._id);
     const pillClass = `pill-${app.status||'pending'}`;
     const statusLabel = (app.status||'pending').toUpperCase();
-    const posClean = (app.position_applied_to||'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
+    const posClean = (app.position_applied_to||'').replace(/[\u{1F300}-\u{1FFFF}\u2600-\u27BF\uFE00-\uFE0F\u200D]/gu,'').trim();
     return `
     <div class="app-card status-${app.status||'pending'}" id="card-${app._id}">
       <div class="app-card-head">
@@ -1603,6 +1649,9 @@ function renderApps(){
         <button class="btn-accept" onclick="actionApp('accept','${app._id}','${(posClean).replace(/'/g,"\\'")}','${(app.Username||'').replace(/'/g,"\\'")}')">✔ Accept</button>
         <button class="btn-place" onclick="placeOnTimeline('${app._id}')">📌 Place</button>
         <button class="btn-reject" onclick="actionApp('reject','${app._id}','${(posClean).replace(/'/g,"\\'")}','${(app.Username||'').replace(/'/g,"\\'")}')">✕ Reject</button>
+      </div>` : isAcceptedUnplaced ? `
+      <div class="app-actions">
+        <button class="btn-place" style="flex:1" onclick="placeOnTimeline('${app._id}')">📌 Place on Timeline</button>
       </div>` : ''}
     </div>`;
   }).join('');
@@ -1635,7 +1684,14 @@ async function actionApp(action, appId, pos, player){
       toastMsg(`${emoji} Sent ${action} for ${player} → bot will process shortly.`);
       // Optimistically update local display
       const app = appsData.find(a=>a._id===appId);
-      if(app){ app.status = action==='accept'?'accepted':'rejected'; app.actioned_at='Pending bot confirmation…'; }
+      if(app){
+        app.status = action==='accept'?'accepted':'rejected';
+        app.actioned_at='Pending bot confirmation…';
+        // Place it on the timeline right away instead of waiting for a
+        // manual click on a button that disappears the instant status
+        // flips away from 'pending' (renderApps() below hides it).
+        if(action==='accept') placeOnTimeline(appId);
+      }
       renderApps();
       // Re-fetch after 3s to confirm
       setTimeout(fetchApps, 3000);
@@ -1651,6 +1707,11 @@ async function actionApp(action, appId, pos, player){
 function placeOnTimeline(appId){
   const app = appsData.find(a=>a._id===appId);
   if(!app){ toastMsg('App not found.'); return; }
+
+  if(placedAppIds.has(appId)){
+    toastMsg(`${app.Username||'This application'} is already on the timeline.`);
+    return;
+  }
 
   // Parse time slot: "14:00 - 14:30 UTC"
   const slotMatch = (app.picked_time_slot||'').match(/(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
@@ -1696,7 +1757,9 @@ function placeOnTimeline(appId){
     userId: app.UserID || ''
   });
   getDayPos(dk, matchedPos.name).sort((a,b)=>a.startMin-b.startMin);
-  renderCanvas(); updateStats();
+  placedAppIds.add(appId);
+  savePlacedIds();
+  renderCanvas(); updateStats(); renderApps();
   toastMsg(`📌 Placed ${app.Username} → ${matchedPos.name} @ ${app.picked_time_slot}`);
 
   // Scroll timeline to that date/time
@@ -1733,6 +1796,7 @@ function init(){
 
   // Applications panel
   loadSetupFromStorage();
+  loadPlacedIds();
   if(pollCfg.url) startPolling();
 
   // Mobile: show timeline by default
