@@ -80,5 +80,19 @@
     "position_applied_to": "Noble Advisor 🧲",
     "date_of_position": "Sunday 26 April",
     "picked_time_slot": "00:30 - 01:00 UTC"
+  },
+  {
+    "_id": "d63115e7d049",
+    "status": "pending",
+    "submitted_at": "2026-08-06 21:53:04 UTC",
+    "discord_id": "263399964191883264",
+    "Username": "Bee",
+    "UserID": "92013189",
+    "KingdomID": "579",
+    "alliance_name": "TheKingsDragons",
+    "alliance_tag": "TKD",
+    "position_applied_to": "Chief Minister 📯",
+    "date_of_position": "Monday 10 August",
+    "picked_time_slot": "00:00 - 00:30 UTC"
   }
 ]
