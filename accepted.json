@@ -42,5 +42,20 @@
     "date_of_position": "Monday 10 August",
     "picked_time_slot": "00:00 - 00:30 UTC",
     "actioned_at": "2026-08-06 22:01:13 UTC"
+  },
+  {
+    "_id": "d42e13155b96",
+    "status": "accepted",
+    "submitted_at": "2026-08-06 22:19:54 UTC",
+    "discord_id": "1339270527717474407",
+    "Username": "UndEVEad",
+    "UserID": "88949458",
+    "KingdomID": "579",
+    "alliance_name": "TheKingsDragons",
+    "alliance_tag": "TKD",
+    "position_applied_to": "Minister of Justice ⚖️",
+    "date_of_position": "Saturday 08 August",
+    "picked_time_slot": "11:30 - 12:00 UTC",
+    "actioned_at": "2026-08-07 16:29:29 UTC"
   }
 ]
