@@ -435,6 +435,7 @@ aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
 .poll-dot.err{background:var(--crimson);}
 .apps-list{flex:1;overflow-y:auto;padding:8px 8px;}
 .apps-list::-webkit-scrollbar{width:3px;}
+#appsListTab{display:flex;flex-direction:column;flex:1;overflow:hidden;}
 .apps-list::-webkit-scrollbar-thumb{background:var(--border-gold);}
 .app-card{
   background:var(--surface2);border:1px solid var(--border);
@@ -833,36 +834,14 @@ aside::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px;}
     </div>
   </div>
 
-  <div class="apps-panel-tabs">
-    <div class="apps-tab active" onclick="showAppsTab('list',this)">📋 List</div>
-    <div class="apps-tab" onclick="showAppsTab('setup',this)">⚙ Setup</div>
-  </div>
-
   <div class="apps-status-bar">
     <span class="poll-dot" id="pollDot"></span>
     <span id="pollStatus">Not configured</span>
   </div>
 
-  <!-- LIST TAB -->
   <div id="appsListTab">
     <div class="apps-list" id="appsList">
-      <div class="apps-empty">Click ⚙ Setup to configure polling interval &amp; webhook, then applications will appear here.</div>
-    </div>
-  </div>
-
-  <!-- SETUP TAB -->
-  <div id="appsSetupTab" style="display:none;padding:0;">
-    <div class="apps-setup-box">
-      <label>GitHub applications.json Raw URL</label>
-      <input type="text" id="cfgGithubUrl" placeholder="https://raw.githubusercontent.com/…/applications.json">
-      <label>Discord Webhook URL</label>
-      <input type="text" id="cfgWebhook" placeholder="https://discord.com/api/webhooks/…">
-      <label>Poll Interval (seconds)</label>
-      <input type="number" id="cfgInterval" placeholder="15" min="10" max="300" value="15">
-      <button class="btn-setup-save" onclick="saveSetup()">✔ Save & Start Polling</button>
-    </div>
-    <div style="padding:0 12px 10px;font-family:'EB Garamond',serif;font-size:.8rem;color:var(--text-dim);font-style:italic;line-height:1.5;">
-      Settings are saved in your browser's localStorage. The webhook URL is only used to send accept/reject messages to your private Discord admin channel.
+      <div class="apps-empty">Loading applications…</div>
     </div>
   </div>
 
@@ -1201,7 +1180,7 @@ function addAppt(){
   const alName=alFull.includes('] ')?alFull.split('] ')[1]:alFull;
   const dk=todayKey();
   if(hasOverlap(dk,pos,s,e)) return toastMsg(`⚠ Overlaps existing slot.`);
-  getDayPos(dk,pos).push({startMin:s,endMin:e,alliance:alName,member,userId});
+  getDayPos(dk,pos).push({startMin:s,endMin:e,alliance:alName,member,userId,source:'manual'});
   getDayPos(dk,pos).sort((a,b)=>a.startMin-b.startMin);
   document.getElementById('fMember').value='';
   document.getElementById('fUserID').value='';
@@ -1212,6 +1191,11 @@ function addAppt(){
   toastMsg(`⚔ [${tagFor(alName)}]${member} → ${pos} @${minToHHMM(s)}`);
 }
 function removeAppt(dk,pos,idx){
+  const entry = getDayPos(dk,pos)[idx];
+  if(entry && entry.source === 'app'){
+    toastMsg('⚠ This slot came from an accepted application — Reject it in the Applications panel to remove it from the timetable.');
+    return;
+  }
   getDayPos(dk,pos).splice(idx,1);
   renderCanvas(); updateStats(); toastMsg('Removed.');
 }
@@ -1475,18 +1459,75 @@ function tickClock(){
 const DEFAULT_GITHUB_URL = "https://raw.githubusercontent.com/hufgacer/KRAT/main/applications.json";
 const ACCEPTED_GITHUB_URL = DEFAULT_GITHUB_URL.replace("applications.json", "accepted.json");
 const REJECTED_GITHUB_URL = DEFAULT_GITHUB_URL.replace("applications.json", "rejected.json");
+const MONTHS = {January:0,February:1,March:2,April:3,May:4,June:5,July:6,August:7,September:8,October:9,November:10,December:11};
 
-// IDs of accepted applications already placed on the timeline, so a page
-// refresh or repeat poll doesn't drop a duplicate block for the same app.
-let placedAppIds = new Set();
-function loadPlacedIds(){
-  try{
-    const s = localStorage.getItem('radsaw_placed_ids');
-    if(s) placedAppIds = new Set(JSON.parse(s));
-  }catch(e){}
-}
-function savePlacedIds(){
-  try{ localStorage.setItem('radsaw_placed_ids', JSON.stringify([...placedAppIds])); }catch(e){}
+// accepted.json is the shared, GitHub-persisted source of truth — every
+// admin's browser polls the same file, so the timetable should be DERIVED
+// from it fresh every poll rather than built up from local clicks. Each
+// timetable block is tagged with a `source`: 'app' (derived from an
+// accepted application, carries `appId`) or 'manual' (hand-added via the
+// Add Appointment form). Every poll strips out only the 'app' blocks and
+// rebuilds them from the current accepted list — manual blocks are never
+// touched. An 'app' block can't be manually removed from the canvas (it
+// would just reappear next poll); undoing one means Rejecting it in the
+// Applications panel, which actually moves it out of accepted.json.
+function deriveAppsToTimetable(acceptedList){
+  // Strip previous app-derived blocks, keep manual ones untouched
+  for(const dk in appts){
+    for(const pos in appts[dk]){
+      appts[dk][pos] = appts[dk][pos].filter(b => b.source !== 'app');
+    }
+  }
+
+  const skipped = [];
+  for(const app of acceptedList){
+    const slotMatch = (app.picked_time_slot||'').match(/(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
+    if(!slotMatch){ skipped.push(`${app.Username||'?'} (bad time slot)`); continue; }
+    const startMin = parseInt(slotMatch[1])*60 + parseInt(slotMatch[2]);
+    const endMin   = parseInt(slotMatch[3])*60 + parseInt(slotMatch[4]);
+
+    const dateMatch = (app.date_of_position||'').match(/(\d{1,2})\s+(\w+)/);
+    if(!dateMatch){ skipped.push(`${app.Username||'?'} (bad date)`); continue; }
+    const month = MONTHS[dateMatch[2]];
+    if(month===undefined){ skipped.push(`${app.Username||'?'} (unknown month)`); continue; }
+    const now = new Date();
+    let year = now.getUTCFullYear();
+    const day = parseInt(dateMatch[1]);
+    if(month < now.getUTCMonth()-1) year++;
+    const dk = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+
+    const posClean = (app.position_applied_to||'').replace(/[\u{1F300}-\u{1FFFF}\u2600-\u27BF\uFE00-\uFE0F\u200D]/gu,'').trim();
+    const matchedPos = POSITIONS.find(p=>p.name.toLowerCase()===posClean.toLowerCase());
+    if(!matchedPos){ skipped.push(`${app.Username||'?'} (position "${posClean}" not recognised)`); continue; }
+
+    const tag = app.alliance_tag || '?';
+    const alName = app.alliance_name || tag;
+    if(!alliances.find(a=>a.name===alName)){
+      alliances.push({name:alName, tag, color:AL_COLORS[alliances.length%AL_COLORS.length]});
+    }
+
+    if(hasOverlap(dk, matchedPos.name, startMin, endMin)){
+      skipped.push(`${app.Username||'?'} (${matchedPos.name} @ ${app.picked_time_slot} overlaps an existing slot)`);
+      continue;
+    }
+
+    getDayPos(dk, matchedPos.name).push({
+      startMin, endMin,
+      alliance: alName,
+      member: app.Username || '?',
+      userId: app.UserID || '',
+      source: 'app',
+      appId: app._id
+    });
+    getDayPos(dk, matchedPos.name).sort((a,b)=>a.startMin-b.startMin);
+  }
+
+  renderAlliances(); renderAlDrop();
+  renderCanvas(); updateStats();
+
+  if(skipped.length){
+    toastMsg(`⚠ ${skipped.length} accepted application(s) couldn't be placed: ${skipped.slice(0,3).join('; ')}${skipped.length>3?'…':''}`);
+  }
 }
 
 let appsData = [];          // all fetched apps
@@ -1511,39 +1552,29 @@ function confirmResolve(val){
 }
 
 // --- Setup ---
+// There's no Setup tab anymore — the URL is hardcoded (it's not a secret,
+// just this repo's public path) and polling starts unconditionally. The
+// webhook is the one thing that must stay admin-entered rather than baked
+// into a publicly-readable file, so it's resolved lazily via
+// getWebhookUrl() the first time an admin actually clicks Accept/Reject,
+// rather than through a settings panel that could be edited by mistake.
 function loadSetupFromStorage(){
   try{
     const s = localStorage.getItem('radsaw_admin_cfg');
     if(s){ pollCfg = {...pollCfg, ...JSON.parse(s)}; }
   }catch(e){}
-  // The applications.json location is fixed to this repo, not a secret,
-  // and shouldn't depend on an admin successfully clicking Save first —
-  // so it's hardcoded here rather than only being set inside saveSetup().
   pollCfg.url = DEFAULT_GITHUB_URL;
-  document.getElementById('cfgGithubUrl').value = pollCfg.url || '';
-  document.getElementById('cfgWebhook').value   = pollCfg.webhook || '';
-  document.getElementById('cfgInterval').value  = pollCfg.interval || 15;
 }
 
-function saveSetup(){
-  pollCfg.url = DEFAULT_GITHUB_URL; // locked
-  pollCfg.webhook  = document.getElementById('cfgWebhook').value.trim();
-  pollCfg.interval = Math.max(10, parseInt(document.getElementById('cfgInterval').value)||15);
+function getWebhookUrl(){
+  if(pollCfg.webhook) return pollCfg.webhook;
+  const entered = window.prompt(
+    'Enter the Discord webhook URL for this admin channel (used only to send accept/reject actions — saved on this device only):'
+  );
+  if(!entered) return null;
+  pollCfg.webhook = entered.trim();
   try{ localStorage.setItem('radsaw_admin_cfg', JSON.stringify(pollCfg)); }catch(e){}
-  showAppsTab('list', document.querySelector('.apps-tab'));
-  startPolling();
-  toastMsg('⚙ Setup saved. Polling started.');
-}
-
-// --- Tabs ---
-function showAppsTab(tab, el){
-  document.getElementById('appsListTab').style.display  = tab==='list'  ? 'flex'   : 'none';
-  document.getElementById('appsSetupTab').style.display = tab==='setup' ? 'block'  : 'none';
-  document.getElementById('appsListTab').style.flexDirection = 'column';
-  document.getElementById('appsListTab').style.flex = '1';
-  document.getElementById('appsListTab').style.overflow = 'hidden';
-  document.querySelectorAll('.apps-tab').forEach(t=>t.classList.remove('active'));
-  if(el) el.classList.add('active');
+  return pollCfg.webhook;
 }
 
 // --- Filter ---
@@ -1599,6 +1630,7 @@ async function fetchApps(){
     const mBadge = document.getElementById('mnavBadge');
     mBadge.textContent = pendingCount;
     mBadge.classList.toggle('vis', pendingCount > 0);
+    deriveAppsToTimetable(accepted);
     renderApps();
   } catch(e){
     setPollStatus('err', 'Fetch error: ' + e.message);
@@ -1631,7 +1663,6 @@ function renderApps(){
 
   list.innerHTML = filtered.map(app => {
     const isPending = app.status === 'pending';
-    const isAcceptedUnplaced = app.status === 'accepted' && !placedAppIds.has(app._id);
     const pillClass = `pill-${app.status||'pending'}`;
     const statusLabel = (app.status||'pending').toUpperCase();
     const posClean = (app.position_applied_to||'').replace(/[\u{1F300}-\u{1FFFF}\u2600-\u27BF\uFE00-\uFE0F\u200D]/gu,'').trim();
@@ -1651,11 +1682,7 @@ function renderApps(){
       ${isPending ? `
       <div class="app-actions">
         <button class="btn-accept" onclick="actionApp('accept','${app._id}','${(posClean).replace(/'/g,"\\'")}','${(app.Username||'').replace(/'/g,"\\'")}')">✔ Accept</button>
-        <button class="btn-place" onclick="placeOnTimeline('${app._id}')">📌 Place</button>
         <button class="btn-reject" onclick="actionApp('reject','${app._id}','${(posClean).replace(/'/g,"\\'")}','${(app.Username||'').replace(/'/g,"\\'")}')">✕ Reject</button>
-      </div>` : isAcceptedUnplaced ? `
-      <div class="app-actions">
-        <button class="btn-place" style="flex:1" onclick="placeOnTimeline('${app._id}')">📌 Place on Timeline</button>
       </div>` : ''}
     </div>`;
   }).join('');
@@ -1663,8 +1690,9 @@ function renderApps(){
 
 // --- Accept / Reject ---
 async function actionApp(action, appId, pos, player){
-  if(!pollCfg.webhook){
-    toastMsg('⚠ No webhook URL configured in Setup.');
+  const webhookUrl = getWebhookUrl();
+  if(!webhookUrl){
+    toastMsg('⚠ A webhook URL is required to send accept/reject actions.');
     return;
   }
   const label  = action === 'accept' ? 'Accept' : 'Reject';
@@ -1679,22 +1707,20 @@ async function actionApp(action, appId, pos, player){
 
   const msg = `ACTION:${action} APP_ID:${appId}`;
   try{
-    const res = await fetch(pollCfg.webhook, {
+    const res = await fetch(webhookUrl, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ content: msg })
     });
     if(res.ok || res.status===204){
       toastMsg(`${emoji} Sent ${action} for ${player} → bot will process shortly.`);
-      // Optimistically update local display
+      // Optimistically update local display; actual timetable placement
+      // happens automatically from deriveAppsToTimetable() on the next
+      // poll once accepted.json reflects the bot's confirmation.
       const app = appsData.find(a=>a._id===appId);
       if(app){
         app.status = action==='accept'?'accepted':'rejected';
         app.actioned_at='Pending bot confirmation…';
-        // Place it on the timeline right away instead of waiting for a
-        // manual click on a button that disappears the instant status
-        // flips away from 'pending' (renderApps() below hides it).
-        if(action==='accept') placeOnTimeline(appId);
       }
       renderApps();
       // Re-fetch after 3s to confirm
@@ -1705,71 +1731,6 @@ async function actionApp(action, appId, pos, player){
   }catch(e){
     toastMsg('⚠ Failed to send: ' + e.message);
   }
-}
-
-// --- Place on timeline ---
-function placeOnTimeline(appId){
-  const app = appsData.find(a=>a._id===appId);
-  if(!app){ toastMsg('App not found.'); return; }
-
-  if(placedAppIds.has(appId)){
-    toastMsg(`${app.Username||'This application'} is already on the timeline.`);
-    return;
-  }
-
-  // Parse time slot: "14:00 - 14:30 UTC"
-  const slotMatch = (app.picked_time_slot||'').match(/(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
-  if(!slotMatch){ toastMsg('Could not parse time slot.'); return; }
-  const startMin = parseInt(slotMatch[1])*60 + parseInt(slotMatch[2]);
-  const endMin   = parseInt(slotMatch[3])*60 + parseInt(slotMatch[4]);
-
-  // Parse date: "Friday 24 April" → YYYY-MM-DD
-  const dateMatch = (app.date_of_position||'').match(/(\d{1,2})\s+(\w+)/);
-  if(!dateMatch){ toastMsg('Could not parse date.'); return; }
-  const months = {January:0,February:1,March:2,April:3,May:4,June:5,July:6,August:7,September:8,October:9,November:10,December:11};
-  const now = new Date();
-  const month = months[dateMatch[2]];
-  if(month===undefined){ toastMsg('Unknown month: '+dateMatch[2]); return; }
-  let year = now.getUTCFullYear();
-  const day = parseInt(dateMatch[1]);
-  // Roll year if month is before current (e.g. applied in Dec for Jan)
-  if(month < now.getUTCMonth()-1) year++;
-  const dk = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-
-  // Strip emoji from position name to match planner's POSITIONS
-  const posClean = (app.position_applied_to||'').replace(/[\u{1F300}-\u{1FFFF}\u2600-\u27BF\uFE00-\uFE0F\u200D]/gu,'').trim();
-  const matchedPos = POSITIONS.find(p=>p.name.toLowerCase()===posClean.toLowerCase());
-  if(!matchedPos){ toastMsg('Position not matched: '+posClean); return; }
-
-  // Ensure alliance exists
-  const tag = app.alliance_tag || '?';
-  const alName = app.alliance_name || tag;
-  if(!alliances.find(a=>a.name===alName)){
-    alliances.push({name:alName, tag, color:AL_COLORS[alliances.length%AL_COLORS.length]});
-    renderAlliances(); renderAlDrop();
-  }
-
-  if(hasOverlap(dk, matchedPos.name, startMin, endMin)){
-    toastMsg(`⚠ Overlap detected for ${matchedPos.name} at ${app.picked_time_slot}`);
-    return;
-  }
-
-  getDayPos(dk, matchedPos.name).push({
-    startMin, endMin,
-    alliance: alName,
-    member: app.Username || '?',
-    userId: app.UserID || ''
-  });
-  getDayPos(dk, matchedPos.name).sort((a,b)=>a.startMin-b.startMin);
-  placedAppIds.add(appId);
-  savePlacedIds();
-  renderCanvas(); updateStats(); renderApps();
-  toastMsg(`📌 Placed ${app.Username} → ${matchedPos.name} @ ${app.picked_time_slot}`);
-
-  // Scroll timeline to that date/time
-  const minsFromOrigin = (new Date(Date.UTC(year,month,day)).getTime() - originDate.getTime())/60000 + startMin;
-  const sc = document.getElementById('tlScroll');
-  sc.scrollLeft = Math.max(0, minsFromOrigin*PX_PER_MIN - 120);
 }
 
 // ══════════════════════════════════════
@@ -1800,7 +1761,6 @@ function init(){
 
   // Applications panel
   loadSetupFromStorage();
-  loadPlacedIds();
   startPolling(); // URL is hardcoded above, no longer gated on a prior manual Save
 
   // Mobile: show timeline by default
