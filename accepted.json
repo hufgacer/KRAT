@@ -57,5 +57,19 @@
     "date_of_position": "Saturday 08 August",
     "picked_time_slot": "11:30 - 12:00 UTC",
     "actioned_at": "2026-08-07 16:29:29 UTC"
+  },
+  {
+    "_id": "454d72a4c6da",
+    "status": "accepted",
+    "submitted_at": "2026-09-27 20:44:07 UTC",
+    "discord_id": "263399964191883264",
+    "Username": "RadSaw デ pewpew",
+    "UserID": "77336214",
+    "alliance_name": "TheKingsDragons",
+    "alliance_tag": "TKD",
+    "position_applied_to": "Chief Minister 📯",
+    "date_of_position": "Monday 05 October",
+    "picked_time_slot": "00:00 - 00:30 UTC",
+    "actioned_at": "2026-09-27 20:45:01 UTC"
   }
 ]
