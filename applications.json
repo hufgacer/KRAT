@@ -80,5 +80,18 @@
     "position_applied_to": "Noble Advisor 🧲",
     "date_of_position": "Sunday 26 April",
     "picked_time_slot": "00:30 - 01:00 UTC"
+  },
+  {
+    "_id": "959843483d16",
+    "status": "pending",
+    "submitted_at": "2026-09-27 22:08:14 UTC",
+    "discord_id": "1396447098450477066",
+    "Username": "#Roberto",
+    "UserID": "90883793",
+    "alliance_name": "TheKingsDragons",
+    "alliance_tag": "TKD",
+    "position_applied_to": "Minister of Justice ⚖️",
+    "date_of_position": "Thursday 08 October",
+    "picked_time_slot": "01:00 - 01:30 UTC"
   }
 ]
